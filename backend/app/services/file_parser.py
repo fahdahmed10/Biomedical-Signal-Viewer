@@ -30,12 +30,12 @@ async def parse_signal_file(file: UploadFile) -> SignalResponse:
             if time_cols:
                 raw_time = df[time_cols[0]].tolist()
                 sampling_rate = detect_sampling_rate(raw_time)
-                time_axis = resample_signal(raw_time, 10000)
+                time_axis = resample_signal(raw_time, 1000)
                 df = df.drop(columns=time_cols)
             
             for col_name in df.columns:
                 raw_data = df[col_name].fillna(0).tolist()
-                optimized_data = resample_signal(raw_data, 10000)
+                optimized_data = resample_signal(raw_data, 1000)
                 channels.append(ChannelData(name=col_name, values=optimized_data))
 
         # --- 2. EDF / BDF Dynamic Detection ---
@@ -53,7 +53,7 @@ async def parse_signal_file(file: UploadFile) -> SignalResponse:
                 
             for col_name in df.columns:
                 raw_data = df[col_name].tolist()
-                optimized_data = resample_signal(raw_data, 10000)
+                optimized_data = resample_signal(raw_data, 1000)
                 channels.append(ChannelData(name=col_name, values=optimized_data))
 
         # --- 3. WFDB (Zip / Rar) Dynamic Detection ---
@@ -116,7 +116,7 @@ async def parse_signal_file(file: UploadFile) -> SignalResponse:
             for i, sig_name in enumerate(record.sig_name):
                 # Ensure data is converted to standard float lists for JSON (handles NaNs safely)
                 raw_data = np.nan_to_num(record.p_signal[:, i]).tolist() 
-                optimized_data = resample_signal(raw_data, 10000)
+                optimized_data = resample_signal(raw_data, 1000)
                 channels.append(ChannelData(name=sig_name, values=optimized_data))
 
         else:

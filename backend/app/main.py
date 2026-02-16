@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from app.Acoustic_Signals.api.endpoints import acoustic_router
 
 app = FastAPI(title="Biomedical Signal Viewer API")
 
@@ -13,7 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+app.include_router(acoustic_router)
 
 @app.get("/")
 def health_check():

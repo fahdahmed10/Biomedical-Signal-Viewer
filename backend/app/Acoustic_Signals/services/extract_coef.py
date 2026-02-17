@@ -26,7 +26,6 @@ def extract_coef(file: UploadFile = File(...)):
 
     # Dominant frequency per frame
     dominant_freq = f[np.argmax(magn, axis=0)]
-    dominant_freq = median_filter(dominant_freq, size=5)  # smooth
 
     # Frame RMS energy
     frame_energy = np.sqrt(np.mean(magn**2, axis=0))

@@ -56,7 +56,7 @@ class UnifiedSubmarineDetector:
 
         # 4. Ensemble
         avg_prob = (dl_prob + ml_prob) / 2
-        label`` = "🚨 SUBMARINE" if avg_prob > 0.5 else "✅ NO SUBMARINE"
+        label = "🚨 SUBMARINE" if avg_prob > 0.5 else "✅ NO SUBMARINE"
         
         return signal, ml_prob, dl_prob, avg_prob, label
 

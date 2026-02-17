@@ -1,6 +1,6 @@
 import numpy as np 
 from app.Acoustic_Signals.schemas.schema import GeneratedSignal
-# 
+
 
 def generate_signal(v, fs, duration, num_points_per_second):
     c = 343   # sound velocity    m/sec

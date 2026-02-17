@@ -1,0 +1,117 @@
+/* Add this at the VERY TOP of index.css */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+:root {
+  /* --- 1. YOUR CUSTOM PALETTE --- */
+  --blue-light: #e8f1f6;
+  --blue-light-hover: #dde9f1;
+  --blue-light-active: #b9d2e2;
+
+  --blue-normal: #1c6ea0;
+  --blue-normal-hover: #196390;
+  --blue-normal-active: #165880;
+
+  --blue-dark: #155378;
+  --blue-dark-hover: #114260;
+  --blue-dark-active: #0d3148;
+  --blue-darker: #0a2738;
+
+  /* --- 2. GLOBAL SETTINGS --- */
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Use your palette for the main background and text */
+  background-color: var(--blue-darker); 
+  color: var(--blue-darker);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* radios */
+    --radius-small: 8px;
+    --radius-medium: 12px;
+    --radius-large: 16px;
+    --radius-extra-large: 32px;
+    --radius-full: 1000px;
+    --radius-circle: 50%;
+
+    /* Bos shadow */
+    --shadow-1: 0px 2px 4px 0px #00000033;
+    --shadow-2: 0px 5px 10px 0px #0000000D;
+    --shadow-3: 0px 5px 10px 0px #00000033;
+    --shadow-4: 0px 10px 20px 0px #0000001A;
+}
+
+/* --- 3. LINKS --- */
+a {
+  font-weight: 500;
+  color: var(--blue-normal);
+  text-decoration: inherit;
+  transition: color 0.25s;
+}
+a:hover {
+  color: var(--blue-normal-hover);
+}
+
+/* --- 4. BODY LAYOUT --- */
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  /* I removed 'display: flex' and 'place-items: center' here. 
+     Why? Because for a dashboard, you want your Navbar at the top, 
+     not floating in the center of the screen! */
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+  color: var(--blue-dark); /* Using your dark blue for headers */
+}
+
+/* --- 5. BUTTONS --- */
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  
+  /* Make buttons stand out using your Normal Blue */
+  background-color: var(--blue-normal);
+  color: white; 
+  
+  cursor: pointer;
+  transition: background-color 0.25s;
+}
+
+button:hover {
+  background-color: var(--blue-normal-hover);
+}
+
+button:active {
+  background-color: var(--blue-normal-active);
+}
+
+button:focus,
+button:focus-visible {
+  outline: 4px auto var(--blue-light-active);
+}
+
+/* @media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+} */

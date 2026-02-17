@@ -1,0 +1,118 @@
+/* Section Title */
+.section-title {
+  text-align: center;
+  color: var(--blue-light-active);
+  margin-bottom: 40px;
+  font-size: 2rem;
+}
+
+/* The Grid Layout */
+.cards-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 30px; /* Space between cards */
+  padding-bottom: 50px;
+}
+
+/* --- THE CARD STYLE --- */
+.signal-card {
+  background-color: #b9d2e2;
+  width: 260px;  /* Fixed width for "Vertical Rectangle" look */
+  min-height: 250px; /* Tall height */
+  padding: 25px;
+  border-radius: 20px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+  
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  
+  /* Smooth transition for the hover effect */
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0,0,0,0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+/* --- HOVER EFFECT: Rotate & Lift --- */
+.signal-card:hover {
+  transform: translateY(-10px);
+  z-index: 100;
+  border-color: var(--blue-normal);
+
+  /* 3. The Glow Effect (Outer Blue Ring) */
+  box-shadow: 0 400px 40px rgba(0,0,0,0.2), 0 0 30px rgba(28, 110, 160, 0.4);
+}
+/* Icon */
+.card-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  background-color: var(--blue-light);
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+/* Title & Text */
+.signal-card h3 {
+  color: var(--blue-dark);
+  margin: 10px 0;
+  font-size: 1.4rem;
+}
+
+.card-desc {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+
+/* Features List */
+.card-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 30px 0; /* Space at bottom for button */
+  width: 100%;
+  text-align: left;
+}
+
+.card-features li {
+  font-size: 0.85rem;
+  color: var(--blue-darker);
+  padding: 5px 0;
+  border-bottom: 1px dashed #eee;
+}
+
+.card-features li::before {
+  content: "•";
+  color: var(--blue-normal);
+  font-weight: bold;
+  display: inline-block;
+  width: 1em;
+  margin-left: -1em;
+}
+
+/* --- THE BUTTON --- */
+.card-button {
+  /* ... keep your existing button styles ... */
+  background-color: var(--blue-normal);
+  color: white;
+  padding: 12px 30px;
+  border-radius: 30px;
+  text-decoration: none;
+  
+  /* CRITICAL: Smooth animation for the button */
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+/* THIS runs ONLY when the mouse touches the button */
+.card-button:hover {
+  background-color: var(--blue-dark); /* Darker blue */
+  transform: scale(1.1); /* Grows 10% larger */
+  cursor: pointer;
+}

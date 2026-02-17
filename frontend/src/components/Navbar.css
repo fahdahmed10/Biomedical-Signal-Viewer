@@ -1,0 +1,68 @@
+/* The outer bar that stretches the full width of the screen */
+.navbar {
+  /* 1. Makes it stick to the top */
+  position: sticky;
+  top: 0;
+  
+  /* 2. Ensures it floats ON TOP of everything else (like your signal banner) */
+  z-index: 1000;
+  /* Using your palette variable directly works globally! */
+  background-color: var(--blue-light-hover); 
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  width: 100%;
+  box-shadow: 0px 10px 20px 0px #0000001A;
+}
+
+/* The inner container that centers the content */
+.navbar-container {
+  
+  max-width: 1200px; /* Limits width so items don't stick to far edges */
+  margin: 0 auto;    /* Centers the container */
+  padding: 1rem 2rem;
+  
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* LEFT SIDE styling */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Reduced from 30px to make icon closer */
+  
+  font-size: 1.8rem; /* Increased font size */
+  font-weight: 800;  /* Extra bold */
+  color: var(--blue-darker);
+}
+
+.navbar-icon {
+  font-size: 2.2rem; /* Make the icon slightly larger than text */
+  color: var(--blue-normal);
+}
+
+/* RIGHT SIDE styling */
+.navbar-links {
+  display: flex;
+  gap: 25px; /* Space between links */
+}
+
+.nav-link {
+  text-decoration: none;
+  font-size: 1.1rem; /* Increased font size */
+  font-weight: 500;
+  color: var(--blue-dark);
+  transition: all 0.2s ease-in-out;
+}
+
+.nav-link:hover {
+  color: var(--blue-normal);
+  transform: translateY(-2px); /* Subtle lift effect on hover */
+}
+
+/* Active Link (Automatic) */
+.nav-link.active {
+  font-weight: 800; /* Bolded as requested */
+  color: var(--blue-normal-active);
+  border-bottom: 3px solid var(--blue-normal-active);
+}

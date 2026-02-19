@@ -13,3 +13,6 @@ librosa
 pykalman
 joblib
 onnxruntime
+statsmodels>=0.13.5
+openpyxl>=3.1.0
+yfinance>=0.2.65

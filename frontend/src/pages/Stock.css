@@ -1,0 +1,243 @@
+.stock-page {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.market-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(30, 136, 229, 0.18), transparent 40%),
+              radial-gradient(circle at 80% 70%, rgba(67, 160, 71, 0.14), transparent 35%);
+}
+
+.market-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 42px 42px;
+  animation: gridDrift 25s linear infinite;
+  opacity: 0.4;
+}
+
+.market-wave {
+  position: absolute;
+  left: -10%;
+  width: 120%;
+  height: 180px;
+  border-radius: 999px;
+  filter: blur(1px);
+}
+
+.market-wave-1 {
+  bottom: 25%;
+  background: linear-gradient(90deg, rgba(76, 175, 80, 0.12), rgba(76, 175, 80, 0.02));
+  animation: waveMove 9s ease-in-out infinite;
+}
+
+.market-wave-2 {
+  bottom: 35%;
+  background: linear-gradient(90deg, rgba(244, 67, 54, 0.09), rgba(244, 67, 54, 0.02));
+  animation: waveMove 11s ease-in-out infinite reverse;
+}
+
+.ticker {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  animation: tickerFloat 14s linear infinite;
+}
+
+.ticker-1 {
+  top: 16%;
+  left: -30%;
+  font-size: 1rem;
+  animation-delay: 0s;
+}
+
+.ticker-2 {
+  top: 28%;
+  left: -35%;
+  font-size: 0.95rem;
+  animation-delay: -5s;
+}
+
+.ticker-3 {
+  top: 40%;
+  left: -33%;
+  font-size: 1rem;
+  animation-delay: -9s;
+}
+
+.page-container {
+  position: relative;
+  z-index: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  backdrop-filter: blur(1px);
+}
+
+.upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.selectors {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.selectors label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 170px;
+}
+
+.selectors select {
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.selectors button {
+  padding: 0.6rem 1.2rem;
+  background-color: #1565c0;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.selectors button:disabled {
+  background-color: #b0bec5;
+  cursor: not-allowed;
+}
+
+.prediction-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.prediction-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.prediction-controls input {
+  width: 70px;
+  padding: 0.25rem;
+}
+
+.prediction-controls button {
+  padding: 0.5rem 1.5rem;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.prediction-controls button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.loading {
+  color: #2196f3;
+  font-weight: bold;
+}
+
+.error {
+  color: #f44336;
+  font-weight: bold;
+}
+
+.info {
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.view-mode-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.view-mode-controls button {
+  border: 1px solid #90caf9;
+  background: #e3f2fd;
+  color: #0d47a1;
+  padding: 0.35rem 0.75rem;
+  border-radius: 5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.view-mode-controls button.active {
+  background: #1565c0;
+  color: #fff;
+  border-color: #1565c0;
+}
+
+.view-hint {
+  color: #607d8b;
+  font-size: 0.9rem;
+}
+
+@keyframes gridDrift {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(-42px, -42px);
+  }
+}
+
+@keyframes waveMove {
+  0%,
+  100% {
+    transform: translateX(0) scaleY(1);
+  }
+  50% {
+    transform: translateX(2%) scaleY(1.2);
+  }
+}
+
+@keyframes tickerFloat {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.35;
+  }
+  90% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: translateX(140vw);
+    opacity: 0;
+  }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Plot from 'react-plotly.js';
 import './Stock.css';
 
@@ -41,6 +41,8 @@ function Stock() {
   const [period, setPeriod] = useState('2y');
   const [symbol, setSymbol] = useState('');
   const [viewMode, setViewMode] = useState('full');
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef(null);
 
   const optionsForCategory = useMemo(() => catalog[category] ?? [], [catalog, category]);
 
@@ -138,6 +140,73 @@ function Stock() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const uploadStockFile = async (file) => {
+    if (!file) return;
+
+    const lowerName = file.name.toLowerCase();
+    const acceptedExtensions = ['.csv', '.xlsx', '.xls'];
+    const isSupported = acceptedExtensions.some((ext) => lowerName.endsWith(ext));
+
+    if (!isSupported) {
+      setError('Unsupported file type. Please upload CSV, XLSX, or XLS.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setForecast(null);
+    setChartData([]);
+    setFileId(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await apiFetch('/stockmarket/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || 'Failed to upload and parse file');
+      }
+
+      const result = await res.json();
+      setFileId(result.file_id);
+      setSeriesName(result.symbol || file.name);
+      setChartData(result.data || []);
+      setViewMode('full');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDrop = async (event) => {
+    event.preventDefault();
+    setDragActive(false);
+    const droppedFile = event.dataTransfer?.files?.[0];
+    await uploadStockFile(droppedFile);
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (event) => {
+    event.preventDefault();
+    setDragActive(false);
+  };
+
+  const handleFileInputChange = async (event) => {
+    const selectedFile = event.target.files?.[0];
+    await uploadStockFile(selectedFile);
+    event.target.value = '';
   };
 
   const traces = [];
@@ -244,6 +313,32 @@ function Stock() {
         <h1>Stock Market / Trading Signals</h1>
 
         <div className="upload-section">
+          <div
+            className={`dropzone ${dragActive ? 'active' : ''}`}
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              onChange={handleFileInputChange}
+              style={{ display: 'none' }}
+            />
+            <p>Drag & drop a CSV/XLSX file here, or click to browse</p>
+          </div>
+
           <div className="selectors">
             <label>
               Category:

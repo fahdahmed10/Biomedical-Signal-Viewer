@@ -1,4 +1,6 @@
 from datetime import date
+from io import BytesIO
+from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
@@ -77,3 +79,59 @@ def fetch_market_data(symbol: str, category: str, period: str = "2y") -> List[Di
 
 
     return records
+
+
+def parse_uploaded_market_file(file_bytes: bytes, filename: str) -> tuple[List[Dict[str, object]], str]:
+    extension = Path(filename or "").suffix.lower()
+
+    if extension == ".csv":
+        frame = pd.read_csv(BytesIO(file_bytes))
+    elif extension in {".xlsx", ".xls"}:
+        frame = pd.read_excel(BytesIO(file_bytes))
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported file type. Use CSV or Excel (.xlsx/.xls)")
+
+    if frame.empty:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
+    frame.columns = [str(col).strip() for col in frame.columns]
+    normalized = {col: col.strip().lower() for col in frame.columns}
+
+    date_candidates = {"date", "datetime", "timestamp", "time"}
+    close_candidates = {"close", "adj close", "adj_close", "price", "last", "value"}
+
+    date_col = next((col for col in frame.columns if normalized[col] in date_candidates), frame.columns[0])
+    close_col = next((col for col in frame.columns if normalized[col] in close_candidates), None)
+
+    if close_col is None:
+        numeric_cols = [
+            col for col in frame.columns if col != date_col and pd.api.types.is_numeric_dtype(frame[col])
+        ]
+        if not numeric_cols:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not detect a price column. Add one named 'close' or provide a numeric price column",
+            )
+        close_col = numeric_cols[0]
+
+    parsed = frame[[date_col, close_col]].copy()
+    parsed[date_col] = pd.to_datetime(parsed[date_col], errors="coerce")
+    parsed[close_col] = pd.to_numeric(parsed[close_col], errors="coerce")
+    parsed = parsed.dropna(subset=[date_col, close_col]).sort_values(by=date_col)
+
+    if parsed.empty:
+        raise HTTPException(status_code=400, detail="No valid rows found after parsing date and price columns")
+
+    records: List[Dict[str, object]] = []
+    for _, row in parsed.iterrows():
+        ts = row[date_col]
+        price = row[close_col]
+        if pd.isna(ts) or pd.isna(price):
+            continue
+        records.append({"date": ts.date(), "close": float(price)})
+
+    if not records:
+        raise HTTPException(status_code=400, detail="No valid rows could be extracted from uploaded file")
+
+    inferred_symbol = Path(filename or "uploaded_series").stem.upper() or "UPLOADED_SERIES"
+    return records, inferred_symbol

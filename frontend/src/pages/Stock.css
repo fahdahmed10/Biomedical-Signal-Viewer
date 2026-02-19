@@ -91,6 +91,23 @@
   margin: 2rem 0;
 }
 
+.dropzone {
+  border: 2px dashed #90caf9;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+  background: rgba(227, 242, 253, 0.5);
+  color: #0d47a1;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.dropzone.active {
+  border-color: #1565c0;
+  background: rgba(187, 222, 251, 0.75);
+}
+
 .selectors {
   display: flex;
   gap: 1rem;

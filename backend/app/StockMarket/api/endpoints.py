@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Form, HTTPException
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from uuid import uuid4
 from datetime import timedelta
 import pandas as pd
@@ -11,7 +11,11 @@ from app.StockMarket.schemas.stock import (
 )
 from app.StockMarket.services.storage_service import store_market_series, get_market_series
 from app.StockMarket.services.prediction_service import predict_prices
-from app.StockMarket.services.market_data_service import get_market_catalog, fetch_market_data
+from app.StockMarket.services.market_data_service import (
+    fetch_market_data,
+    get_market_catalog,
+    parse_uploaded_market_file,
+)
 
 router = APIRouter(prefix="/stockmarket", tags=["Stock Market"])
 
@@ -40,6 +44,30 @@ async def fetch_live_data(symbol: str = Form(...), category: str = Form(...), pe
         category=category,
         symbol=symbol,
         data=data
+    )
+
+
+@router.post("/upload", response_model=MarketFetchResponse)
+async def upload_market_file(file: UploadFile = File(...)):
+    """
+    Upload a local market time-series file (CSV or Excel).
+    This runs in parallel with /fetch and does not replace live API fetching.
+    """
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Missing filename in uploaded file")
+
+    file_bytes = await file.read()
+    data, symbol = parse_uploaded_market_file(file_bytes=file_bytes, filename=file.filename)
+
+    file_id = uuid4()
+    store_market_series(file_id=file_id, name=file.filename, category="uploaded", data=data)
+
+    return MarketFetchResponse(
+        file_id=file_id,
+        filename=file.filename,
+        category="uploaded",
+        symbol=symbol,
+        data=data,
     )
 
 @router.post("/predict", response_model=PredictionResponse)

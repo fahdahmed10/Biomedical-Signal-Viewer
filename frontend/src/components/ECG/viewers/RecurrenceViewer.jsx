@@ -1,3 +1,4 @@
+// Cross-channel scatter plot
 import { useState, useEffect, useMemo } from "react";
 import Plot from "react-plotly.js";
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import Plot from "react-plotly.js";
 
 export default function XORViewer({ data }) {
+  
   const safeData = data || { time: [], signals: {}, channels: [] };
   const { time, signals: origSignals, channels: origChannels } = safeData;
 

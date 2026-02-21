@@ -4,6 +4,7 @@ import axios from "axios";
 import ECGViewer from "../components/ECG/viewers/ECGViewer";
 import XORViewer from "../components/ECG/viewers/XORViewer";
 import RecurrenceViewer from "../components/ECG/viewers/RecurrenceViewer";
+import PolarViewer from "../components/ECG/viewers/PolarViewer";
 
 
 export default function ECG() {
@@ -58,6 +59,7 @@ export default function ECG() {
         <ECGViewer data={result} />
         <XORViewer data={result} />
         <RecurrenceViewer data={result} />
+        <PolarViewer data={result} />
       </div>
     </div>
   );

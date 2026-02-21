@@ -1,103 +1,90 @@
 import numpy as np
 import pandas as pd
 from fastapi import UploadFile, File, HTTPException, status
-pd.Int64Index = pd.Index 
-
-import joblib
-import os
+from sklearn.decomposition import PCA
 from app.MicroBiome.schemas.schema import ProfilingOutput
 
-class Profiling:
-    def __init__(self):     
-        try:
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            base_path = os.path.dirname(current_dir)
-            ml_path = os.path.join(base_path, 'notebook', 'xgb_model.pkl')
-            
-            # Check if file exists to prevent silent failures
-            if not os.path.exists(ml_path):
-                print(f"WARNING: Model file not found at {ml_path}")
-                self.ml_model = None
-            else:
-                self.ml_model = joblib.load(ml_path)
+class PatientProfile:
+    def get_top5(self, df, bacteria_columns):
+        X = df[bacteria_columns]
+        # Get top 4 species by mean abundance
+        top4_names = X.mean(axis=0).nlargest(4).index.tolist()
+        top5_df = X[top4_names].copy()
+        # Sum everything else into 'others'
+        top5_df['others'] = X.drop(columns=top4_names).sum(axis=1)
+        
+        # Format for frontend: { "SpeciesName": [values_across_time], ... }
+        bacteria_data = {col: top5_df[col].tolist() for col in top5_df.columns}
+        return bacteria_data, top4_names + ['others']
+    
+    def get_health_index(self, df, good_bugs, bad_bugs):
+        # Filter only bugs present in the uploaded file to avoid KeyErrors
+        available_good = [b for b in good_bugs if b in df.columns]
+        available_bad = [b for b in bad_bugs if b in df.columns]
+        
+        sum_good = df[available_good].fillna(0).sum(axis=1)
+        sum_bad = df[available_bad].fillna(0).sum(axis=1)
+        epsilon = 1e-5 
+        healthy_index = np.log10((sum_good + epsilon) / (sum_bad + epsilon))
+        return healthy_index.tolist()
+
+    def get_shannon_index(self, X):
+        epsilon = 1e-5
+        # Assuming X is relative abundance (0-100)
+        proportions = X / 100.0
+        # Replace 0 with epsilon to avoid log(0)
+        H = - (proportions * np.log(proportions + epsilon)).sum(axis=1)
+        return H.tolist()
+
+    def get_pca_coordinates(self, df, bacteria_columns):
+        X_raw = df[bacteria_columns].values
+        pseudocount = 1e-6
+        X_pseudo = X_raw + pseudocount      
+        X_log = np.log(X_pseudo)
+        X_clr = X_log - X_log.mean(axis=1, keepdims=True)
                 
-                # --- THE XGBOOST FIXES ---
-                # Give Scikit-learn the dummy attributes it is looking for
-                if not hasattr(self.ml_model, 'use_label_encoder'):
-                    self.ml_model.use_label_encoder = False
-                if not hasattr(self.ml_model, 'enable_categorical'):
-                    self.ml_model.enable_categorical = False
-                if not hasattr(self.ml_model, 'predictor'):
-                    self.ml_model.predictor = None
-
-        except Exception as e:
-            print(f"Error loading model: {e}")
-            self.ml_model = None
-
-        self.top_diseases = ["n", 't2d', "obesity", "cirrhosis", "ibd_ulcerative_colitis", "cancer"]
-
-    def profiling(self, df: pd.DataFrame) -> ProfilingOutput:
-        if self.ml_model is None:
-            raise ValueError("ML Model failed to load.")
-
-        row = df.iloc[0]
-
-        # Extract metadata securely
-        subjectID = row.get('subjectID')
-        if isinstance(subjectID, np.generic): 
-            subjectID = subjectID.item()
-            
-        bodysite = str(row.get('bodysite')) if pd.notna(row.get('bodysite')) else None
+        pca_model = PCA(n_components=2)
+        pcs = pca_model.fit_transform(X_clr)
         
-        # --- THE AGE FIX ---
-        age_raw = row.get('age')
-        try:
-            # Try to convert to float first (in case of '25.0'), then int
-            age = int(float(age_raw))
-        except (ValueError, TypeError):
-            # If it says 'nd' or is missing entirely, default to 0
-            age = 0
-            
-        gender = str(row.get('gender')) if pd.notna(row.get('gender')) else None
+        return pcs[:, 0].tolist(), pcs[:, 1].tolist()
 
-        # Filter microbiome columns safely
-        valid_columns = [col for col in df.columns if "s__" in col and "t__" not in col]
+    def profile(self, df):
+        df = df.fillna(df.mean(numeric_only=True))
+        df = df.fillna(0.0)
+        # 1. Column Identification
+        metadata_columns = ['External ID', 'Participant ID', 'week_num']
+        clinical_columns = ['diagnosis', 'fecalcal']
+        bacteria_columns = [col for col in df.columns if col not in metadata_columns + clinical_columns]
         
-        if not valid_columns:
-            raise ValueError("No valid microbiome (s__) columns found.")
+        # 2. Compute Metrics
+        top5_data, top5_names = self.get_top5(df, bacteria_columns)
+        
+        good_bugs = ['Faecalibacterium prausnitzii', 'Akkermansia muciniphila', 'Roseburia hominis', 'Bifidobacterium longum', 'Eubacterium rectale']    
+        bad_bugs = ['Escherichia coli', 'Clostridioides difficile', 'Fusobacterium nucleatum', 'Klebsiella pneumoniae', 'Ruminococcus gnavus']
 
-        microbe_series = row[valid_columns].astype(float) 
-        microbe_df = df.iloc[[0]][valid_columns] 
+        protective_dict = {col: df[col].tolist() for col in good_bugs if col in df.columns}
+        opportunistic_dict = {col: df[col].tolist() for col in bad_bugs if col in df.columns}
 
-        # Calculate Indices
-        shannon = float(-(microbe_series/100 * np.log(microbe_series/100 + 1e-9)).sum())
-        richness = int((microbe_series > 0).sum())
+        h_index = self.get_health_index(df, good_bugs, bad_bugs)
+        s_index = self.get_shannon_index(df[bacteria_columns])
+        pca_x, pca_y = self.get_pca_coordinates(df, bacteria_columns)
 
-        # Model Predictions
-        probs_array = self.ml_model.predict_proba(microbe_df)
-        probs = probs_array[0].tolist()  
-
-        # Top 10 columns and values
-        top10 = microbe_series.nlargest(10)
-        top_cols = top10.index.tolist()
-        top_vals = top10.values.tolist() 
-
-        # Return as a Pydantic schema
+        # 3. Assemble Final Output
         return ProfilingOutput(
-            subjectID=str(subjectID),
-            bodysite=bodysite,
-            age=age,  # Safely parsed as an int
-            gender=gender,
-            shannon=shannon,
-            richness=richness,
-            top_diseases=self.top_diseases,
-            probs=probs,
-            top_cols=top_cols,
-            top_vals=top_vals
+            participant_id=str(df['Participant ID'].iloc[0]) if 'Participant ID' in df.columns else "Unknown",
+            weeks=df['week_num'].tolist() if 'week_num' in df.columns else list(range(len(df))),
+            fecalcal=df['fecalcal'].tolist() if 'fecalcal' in df.columns else [],
+            top5_bacteria=top5_data,
+            top5_names=top5_names,
+            healthy_index=h_index,
+            shannon_index=s_index,
+            pca_x=pca_x,
+            pca_y=pca_y,
+            protective_bacteria=protective_dict,       
+            opportunistic_bacteria=opportunistic_dict  # 
         )
 
-profile_runner = Profiling()
-
+obj = PatientProfile()
 
 async def GetProfile(file: UploadFile = File(...)):
     if not (file.filename.endswith(".csv") or file.filename.endswith(".tsv")):
@@ -115,5 +102,5 @@ async def GetProfile(file: UploadFile = File(...)):
     if df.empty:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Uploaded file is empty")
 
-    results = profile_runner.profiling(df) 
+    results = obj.profile(df) 
     return results

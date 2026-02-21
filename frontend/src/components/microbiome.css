@@ -1,0 +1,334 @@
+:root {
+  --blue-light: #e8f1f6;
+  --blue-light-hover: #dde9f1;
+  --blue-light-active: #b9d2e2;
+  --blue-normal: #1c6ea0;
+  --blue-normal-hover: #196390;
+  --blue-normal-active: #165880;
+  --blue-dark: #155378;
+  --blue-dark-hover: #114260;
+  --blue-dark-active: #0d3148;
+  --blue-darker: #0a2738;
+}
+
+/* =========================================
+   MICROBIOME COMPONENT STYLES
+   ========================================= */
+
+.microbiome-wrapper {
+  background: linear-gradient(90deg, #b9d2e2 0%, var(--blue-darker) 100%);
+  min-height: 100vh;
+  width: 100%;
+  font-family: 'Inter', sans-serif;
+  color: var(--blue-light);
+  padding-bottom: 50px;
+}
+
+/* Intro Section */
+.micro-intro {
+  width: 100%;
+  background: linear-gradient(90deg, #b9d2e2 0%, var(--blue-darker) 100%);
+  padding: 40px 5%;
+  text-align: center;
+  /* border-bottom: 1px solid var(--blue-normal-active); */
+  margin-bottom: 0px;
+}
+
+.micro-intro h1 {
+  margin: 0 0 10px 0;
+  font-size: 2.2rem;
+  color: var(--blue-light);
+  letter-spacing: 1px;
+}
+
+.micro-intro p {
+  margin: 0;
+  color: var(--blue-light-active);
+  font-size: 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Container */
+.micro-container {
+    /* background: linear-gradient(90deg, #b9d2e2 0%, var(--blue-darker) 100%); */
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+/* Panels */
+.micro-panel {
+    background-color: #0a2738;
+  /* background: var(--blue-dark-hover); */
+  border: 1px solid var(--blue-light-active);
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 10px 30px rgba(10, 39, 56, 0.4);
+}
+
+.micro-panel.half {
+  flex: 1;
+  min-width: 0; /* Prevents overflow in flex */
+}
+
+.panel-title {
+  margin: 0 0 20px 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--blue-light);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel-subtitle {
+  margin: 0 0 20px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--blue-dark);
+}
+
+/* Utility classes mapped to palette */
+.text-cyan { color: var(--blue-light-active) !important; }
+.text-green { color: var(--blue-light-hover) !important; }
+
+/* Ingestion Box */
+.ingestion-box {
+  background: #0d3146;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  backdrop-filter: blur(50px);
+}
+
+.upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  backdrop-filter: blur(10px);
+}
+
+.upload-label-text {
+  font-size: 0.75rem;
+  color: var(--blue-light-active);
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.file-input-group {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.btn-outline {
+  /* border: 1px solid var(--blue-light-active); */
+  color: var(--blue-light-active);
+  /* background: transparent; */
+  background: #105a86;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.4s ease;
+  /* font-style: italic; */
+}
+
+.btn-outline:hover {
+  background: var(--blue-dark-hover);
+  color: var(--blue-light);
+  border: 1px solid var(--blue-light-active);
+}
+
+.file-name {
+  color: var(--blue-light-hover);
+  font-size: 0.9rem;
+}
+
+.btn-primary {
+  background: #105a86;
+  color: #ffffff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #0d4869;
+  border: 1px solid var(--blue-light-active);
+}
+
+.demo-note {
+  font-size: 0.8rem;
+  color: var(--blue-light-active);
+  margin-top: 15px;
+  font-style: italic;
+}
+
+.micro-error {
+  color: #ff6b6b; /* Kept semantic red for error visibility */
+  margin-top: 10px;
+  font-size: 0.9rem;
+}
+
+/* Results Section */
+.results-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}/* Analysis Profile Header */
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.profile-badges-right {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  padding: 15px 30px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: var(--blue-light);
+  border: 1px solid var(--blue-light-active);
+  
+}
+
+.badge.dark {
+  /* background: var(--blue-dark); */
+  background: #0d4869;
+}
+
+.badge.outline-green {
+  border: 1px solid var(--blue-normal-hover);
+  color: var(--blue-light-active);
+  letter-spacing: 1px;
+  /* background: #0d4869; */
+}
+
+/* Mock Metadata Box - Wrapper acts as a Grid now */
+.mock-metadata-box {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+/* Individual Metadata Boxes */
+.meta-item {
+  /* background: var(--blue-dark); */
+  background: #0d4869;
+  border: 1px solid var(--blue-dark-hover);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center aligns the text inside the boxes */
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--blue-normal-hover);
+}
+
+/* Optional hover effect so the boxes feel tactile */
+.meta-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(10, 39, 56, 0.3);
+  border: 1px solid var(--blue-light-active);
+}
+
+/* Highlighted Risk Box */
+.meta-item.highlight-risk {
+  border: 1px solid rgba(247, 244, 244, 0.6); /* Soft red border */
+  background: rgba(255, 135, 135, 0.05); /* Very subtle red background tint */
+}
+
+.meta-label {
+  font-size: 0.75rem;
+  color: var(--blue-light-active);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.meta-value {
+  font-family: monospace;
+  font-size: 1.2rem;
+  color: var(--blue-light);
+}
+/* Split Rows */
+.micro-split-row {
+  display: flex;
+  gap: 25px;
+}
+
+/* Biodiversity Metrics */
+.bio-metrics {
+  display: flex;
+  flex: 1;
+  gap: 40px;
+  margin-bottom: 30px;
+  margin-top: 20px;
+}
+
+.metric {
+  display: flex;
+  flex: 2;
+  flex-direction: column;
+  align-items: center;
+}
+
+.metric-val {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--blue-light);
+  text-shadow: 0 0 15px rgba(232, 241, 246, 0.2);
+}
+
+.metric-label {
+  font-size: 0.8rem;
+  color: var(--blue-light-active);
+  letter-spacing: 1px;
+  margin-top: 10px;
+}
+
+.insight-box {
+  background: var(--blue-dark);
+  border: 1px solid var(--blue-dark-hover);
+  border-left: 3px solid var(--blue-normal);
+  border-radius: 6px;
+  padding: 15px;
+  color: var(--blue-light-hover);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.bar-container, .radar-container {
+  width: 100%;
+  margin-top: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .micro-split-row {
+    flex-direction: column;
+  }
+}

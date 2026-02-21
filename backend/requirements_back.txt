@@ -8,8 +8,9 @@ mne>=1.3.0
 pyedflib>=0.1.32
 wfdb>=4.1.0
 pydantic>=1.10.0
-rarfile
+setuptools<70
 librosa
 pykalman
 joblib
 onnxruntime
+xgboost==1.5.2

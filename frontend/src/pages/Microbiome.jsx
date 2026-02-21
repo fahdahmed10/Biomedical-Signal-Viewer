@@ -1,10 +1,9 @@
-function Microbiome() {
+import Microbiome from '../components/Microbiome';
+
+function MicrobiomePage() {
   return (
-    <div className="page-container">
-      <h1>Microbiome Page</h1>
-      <p>Microbiome data goes here.</p>
-    </div>
+    <Microbiome />
   );
 }
 
-export default Microbiome;
+export default MicrobiomePage;

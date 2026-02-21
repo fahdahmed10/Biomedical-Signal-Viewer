@@ -1,6 +1,10 @@
 import { useState } from "react";
 import axios from "axios";
+
 import ECGViewer from "../components/ECG/viewers/ECGViewer";
+import XORViewer from "../components/ECG/viewers/XORViewer";
+import RecurrenceViewer from "../components/ECG/viewers/RecurrenceViewer";
+
 
 export default function ECG() {
   const [file, setFile] = useState(null);
@@ -22,7 +26,7 @@ export default function ECG() {
       );
 
       setResult(res.data);
-      console.log(res.data); 
+      console.log(res.data);
     } catch (err) {
       console.error(err);
       alert("Upload failed");
@@ -33,16 +37,28 @@ export default function ECG() {
 
   return (
     <div style={{ padding: 40 }}>
-      <h1>ECG Viewer</h1>
+      <h1>ECG Page</h1>
 
-      {/* Upload input */}
-      <input type="file" accept=".csv" onChange={e => setFile(e.target.files[0])} />
-      <button onClick={handleUpload} style={{ marginLeft: 10 }}>Upload</button>
+      {/* Upload Section */}
+      <div style={{ marginBottom: 20 }}>
+        <input
+          type="file"
+          accept=".csv"
+          onChange={e => setFile(e.target.files[0])}
+        />
+        <button onClick={handleUpload} style={{ marginLeft: 10 }}>
+          Upload
+        </button>
+      </div>
 
       {loading && <p>Loading...</p>}
 
-      {/* Pass data to ECGViewer */}
-      <ECGViewer data={result} />
+      {/* Viewers Section */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 50 }}>
+        <ECGViewer data={result} />
+        <XORViewer data={result} />
+        <RecurrenceViewer data={result} />
+      </div>
     </div>
   );
 }

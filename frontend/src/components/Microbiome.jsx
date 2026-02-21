@@ -17,6 +17,12 @@ const Microbiome = () => {
   const [rawData, setRawData] = useState(null);
   
   // ==========================================
+  // VIEW CONTROL STATE (TABS)
+  // ==========================================
+  // MODIFICATION: Set initial state to null so no graphs appear initially
+  const [activeCard, setActiveCard] = useState(null); 
+
+  // ==========================================
   // CHART CONTROL STATES
   // ==========================================
   // 1. Stacked Area Chart (Top 5 Taxa)
@@ -25,17 +31,16 @@ const Microbiome = () => {
   // 2. Fecalcal Chart Overlay Selection
   const [g2Overlay, setG2Overlay] = useState('shannon'); // 'shannon' or 'healthy_index'
 
-  // 3. Summation Chart (Replaced Ratio)
+  // 3. Summation Chart & Ratio
   const [g3ShowProSum, setG3ShowProSum] = useState(true);
   const [g3ShowOppSum, setG3ShowOppSum] = useState(true);
+  const [g3ShowRatio, setG3ShowRatio] = useState(true);
 
-  // 4. Health Index Profiling
-  const [g4ShowPro, setG4ShowPro] = useState(true);
-  const [g4ShowOpp, setG4ShowOpp] = useState(true);
+  // 4. Health Index Profiling (Individual Bacteria Selection)
+  const [g4SelectedTaxa, setG4SelectedTaxa] = useState([]);
 
-  // 5. Shannon Profiling
-  const [g5ShowPro, setG5ShowPro] = useState(true);
-  const [g5ShowOpp, setG5ShowOpp] = useState(true);
+  // 5. Shannon Profiling (Individual Bacteria Selection)
+  const [g5SelectedTaxa, setG5SelectedTaxa] = useState([]);
 
   // 6. PCA 
   const [pcaPath, setPcaPath] = useState(true);
@@ -66,6 +71,8 @@ const Microbiome = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setRawData(response.data);
+      // MODIFICATION: Reset view to null when new data is loaded so only the cards show
+      setActiveCard(null);
     } catch (err) {
       console.error(err);
       setError("Analysis failed. Ensure the backend is running and the file is a valid microbiome dataset.");
@@ -89,12 +96,28 @@ const Microbiome = () => {
     );
   };
 
+  const handleToggleG4Taxa = (taxaName) => {
+    setG4SelectedTaxa(prev => 
+      prev.includes(taxaName) 
+        ? prev.filter(t => t !== taxaName) 
+        : [...prev, taxaName]              
+    );
+  };
+
+  const handleToggleG5Taxa = (taxaName) => {
+    setG5SelectedTaxa(prev => 
+      prev.includes(taxaName) 
+        ? prev.filter(t => t !== taxaName) 
+        : [...prev, taxaName]              
+    );
+  };
+
   // ==========================================
   // DATA TRANSFORMATION & CLINICAL LOGIC
   // ==========================================
-  const { chartData, scatterData, latestMetrics, insights, availableTaxaList } = useMemo(() => {
+  const { chartData, scatterData, latestMetrics, insights, availableTaxaList, protectiveTaxaList, opportunisticTaxaList } = useMemo(() => {
     if (!rawData || !rawData.weeks || rawData.weeks.length === 0) {
-      return { chartData: [], scatterData: [], latestMetrics: null, insights: [], availableTaxaList: [] };
+      return { chartData: [], scatterData: [], latestMetrics: null, insights: [], availableTaxaList: [], protectiveTaxaList: [], opportunisticTaxaList: [] };
     }
 
     const data = [];
@@ -104,27 +127,36 @@ const Microbiome = () => {
 
     const getVal = (group, name, index) => (group && group[name] ? group[name][index] : 0);
 
-    const taxaSet = new Set();
-    Object.keys(rawData.protective_bacteria || {}).forEach(k => taxaSet.add(k));
-    Object.keys(rawData.opportunistic_bacteria || {}).forEach(k => taxaSet.add(k));
+    const protectiveTaxaList = rawData.protective_bacteria ? Object.keys(rawData.protective_bacteria) : [];
+    const opportunisticTaxaList = rawData.opportunistic_bacteria ? Object.keys(rawData.opportunistic_bacteria) : [];
+    
+    const taxaSet = new Set([...protectiveTaxaList, ...opportunisticTaxaList]);
+    
+    // Dynamically add all top 5 bacteria names
+    if (rawData.top5_names) {
+      rawData.top5_names.forEach(k => taxaSet.add(k));
+    }
     if (rawData.top5_bacteria && rawData.top5_bacteria["others"]) taxaSet.add("others");
     
     const availableTaxaList = Array.from(taxaSet);
 
     for (let i = 0; i < weeksCount; i++) {
-      const sumProtective = 
-        getVal(rawData.protective_bacteria, "Faecalibacterium prausnitzii", i) +
-        getVal(rawData.protective_bacteria, "Akkermansia muciniphila", i) +
-        getVal(rawData.protective_bacteria, "Roseburia hominis", i) +
-        getVal(rawData.protective_bacteria, "Bifidobacterium longum", i) +
-        getVal(rawData.protective_bacteria, "Eubacterium rectale", i);
+      
+      // Dynamically sum ALL protective bacteria in the dataset
+      let sumProtective = 0;
+      if (rawData.protective_bacteria) {
+        Object.keys(rawData.protective_bacteria).forEach(key => {
+          sumProtective += getVal(rawData.protective_bacteria, key, i);
+        });
+      }
 
-      const sumOpportunistic = 
-        getVal(rawData.opportunistic_bacteria, "Escherichia coli", i) +
-        getVal(rawData.opportunistic_bacteria, "Clostridioides difficile", i) +
-        getVal(rawData.opportunistic_bacteria, "Fusobacterium nucleatum", i) +
-        getVal(rawData.opportunistic_bacteria, "Klebsiella pneumoniae", i) +
-        getVal(rawData.opportunistic_bacteria, "Ruminococcus gnavus", i);
+      // Dynamically sum ALL opportunistic bacteria in the dataset
+      let sumOpportunistic = 0;
+      if (rawData.opportunistic_bacteria) {
+        Object.keys(rawData.opportunistic_bacteria).forEach(key => {
+          sumOpportunistic += getVal(rawData.opportunistic_bacteria, key, i);
+        });
+      }
 
       let pcaDistance = 0;
       if (i > 0) {
@@ -189,7 +221,7 @@ const Microbiome = () => {
       }
     }
 
-    return { chartData: data, scatterData: sData, latestMetrics: latest, insights: generatedInsights, availableTaxaList };
+    return { chartData: data, scatterData: sData, latestMetrics: latest, insights: generatedInsights, availableTaxaList, protectiveTaxaList, opportunisticTaxaList };
   }, [rawData]);
 
   const getBtnStyle = (isActive, activeColor) => ({
@@ -206,6 +238,16 @@ const Microbiome = () => {
     textAlign: 'left',
     marginBottom: '8px'
   });
+
+  const getTaxaColor = (taxa) => {
+    if (protectiveTaxaList.includes(taxa)) {
+      return CHART_COLORS[protectiveTaxaList.indexOf(taxa) % CHART_COLORS.length];
+    }
+    if (opportunisticTaxaList.includes(taxa)) {
+      return CHART_COLORS[(opportunisticTaxaList.indexOf(taxa) + 4) % CHART_COLORS.length]; // offset index for contrast
+    }
+    return '#94a3b8';
+  };
 
   return (
     <div className="microbiome-wrapper">
@@ -240,322 +282,398 @@ const Microbiome = () => {
           <div className="results-wrapper">
             
             <div className="profile-header">
-              <h2 className="panel-title text-cyan">Analysis Profile: {rawData.participant_id}</h2>
+              <h2 className="panel-title text-cyan">Analysis Profile: {rawData.participant_id || "Loaded"}</h2>
               <div className="badge outline-green">LIVE TRACKING</div>
             </div>
 
-            {/* TOP METRICS ROW */}
-            <div className="metrics-top-row">
-              <div className="metric-card" title="Composite score representing overall gut stability and function based on reference ranges.">
-                <span className="metric-title">HEALTHY INDEX ℹ️</span>
-                <span className="metric-value text-green">{latestMetrics.healthy_index.toFixed(1)}</span>
-                <span className="metric-sub">Latest Week</span>
+            {/* TWO SELECTOR CARDS FOR VIEWS */}
+            <div style={{ display: 'flex', gap: '20px', marginBottom: '30px', flexWrap: 'wrap' }}>
+              <div 
+                className={`metric-card`}
+                style={{ 
+                  cursor: 'pointer', flex: '1 1 300px', 
+                  border: activeCard === 'visualization' ? '2px solid #06b6d4' : '1px solid var(--blue-dark-hover)', 
+                  background: activeCard === 'visualization' ? 'var(--blue-dark-active)' : 'transparent',
+                  textAlign: 'center', padding: '20px'
+                }}
+                onClick={() => setActiveCard('visualization')}
+              >
+                <h3 style={{ margin: 0, color: '#06b6d4' }}>Visualization and Analysis</h3>
+                <p style={{ margin: '8px 0 0 0', fontSize: '0.9rem', color: 'var(--blue-light)' }}>
+                  View composition, inflammation timelines, and bacterial summation graphs.
+                </p>
               </div>
-              <div className={`metric-card ${latestMetrics.fecalcal > 200 ? 'alert-card' : ''}`}>
-                <span className="metric-title">FECAL CALPROTECTIN ℹ️</span>
-                <span className={`metric-value ${latestMetrics.fecalcal > 200 ? 'text-red' : 'text-cyan'}`}>
-                  {latestMetrics.fecalcal > 200 && '⚠️ '} {latestMetrics.fecalcal.toFixed(0)}
-                </span>
-                <span className="metric-sub">{latestMetrics.fecalcal > 200 ? 'High Inflammation' : 'Normal Range'}</span>
-              </div>
-              <div className="metric-card">
-                <span className="metric-title">PRO / OPP RATIO ℹ️</span>
-                <span className="metric-value text-cyan">{latestMetrics.ratio}</span>
-                <span className="metric-sub">Protective dominance multiplier</span>
-              </div>
-              <div className="metric-card">
-                <span className="metric-title">SHANNON INDEX ℹ️</span>
-                <span className="metric-value text-green">{latestMetrics.shannon.toFixed(2)}</span>
-                <span className="metric-sub">Latest Biodiversity</span>
-              </div>
-            </div>
 
-            <div className="insights-panel">
-              <h3 className="panel-title text-cyan" style={{marginBottom: '15px'}}>Automated Clinical Summary</h3>
-              <div className="insights-list">
-                {insights.length > 0 ? insights.map((insight, idx) => (
-                  <div key={idx} className={`insight-bullet ${insight.type}`}>
-                    {insight.text}
-                  </div>
-                )) : (
-                  <div className="insight-bullet info">No significant clinical alerts detected in this dataset.</div>
-                )}
+              <div 
+                className={`metric-card`}
+                style={{ 
+                  cursor: 'pointer', flex: '1 1 300px', 
+                  border: activeCard === 'clinical' ? '2px solid #10b981' : '1px solid var(--blue-dark-hover)', 
+                  background: activeCard === 'clinical' ? 'var(--blue-dark-active)' : 'transparent',
+                  textAlign: 'center', padding: '20px'
+                }}
+                onClick={() => setActiveCard('clinical')}
+              >
+                <h3 style={{ margin: 0, color: '#10b981' }}>Clinical Summary & Panel</h3>
+                <p style={{ margin: '8px 0 0 0', fontSize: '0.9rem', color: 'var(--blue-light)' }}>
+                  View Health Index, Fecal Calprotectin, Shannon Index, and automated clinical summaries.
+                </p>
               </div>
             </div>
 
             {/* ========================================== */}
-            {/* GRAPH 1: Custom Composition Trajectory     */}
+            {/* VIEW 1: VISUALIZATION AND ANALYSIS         */}
             {/* ========================================== */}
-            <div className="micro-panel">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
-                <div style={{ flex: '3 1 600px', minWidth: 0 }}>
-                  <h3 className="panel-title text-cyan">Top 5 Bacteria Stacked Composition</h3>
-                  <p style={{fontSize: '0.85rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Stacked area map of the top 5 taxa over time.</p>
-                  
-                  <div style={{ width: '100%', height: 350 }}>
-                    <ResponsiveContainer>
-                      <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--blue-dark-hover)" />
-                        <XAxis dataKey="week" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
-                        <YAxis stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
-                        <Tooltip contentStyle={{ backgroundColor: 'var(--blue-darker)', borderColor: 'var(--blue-dark-hover)', color: 'var(--blue-light)' }} />
-                        
-                        {activeTaxa.length === 0 && (
-                           <text x="50%" y="50%" textAnchor="middle" fill="#64748b" fontSize="14">Select bacteria from the panel to display</text>
-                        )}
-                        {activeTaxa.map((taxa, idx) => (
-                          <Area 
-                            key={taxa} type="monotone" dataKey={taxa} name={taxa} stackId="1" 
-                            stroke={CHART_COLORS[rawData.top5_names.indexOf(taxa) % CHART_COLORS.length]} 
-                            fill={CHART_COLORS[rawData.top5_names.indexOf(taxa) % CHART_COLORS.length]} 
-                            fillOpacity={0.6} 
-                          />
-                        ))}
-                      </AreaChart>
-                    </ResponsiveContainer>
+            {activeCard === 'visualization' && (
+              <>
+                {/* GRAPH 1: Custom Composition Trajectory     */}
+                <div className="micro-panel">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
+                    <div style={{ flex: '3 1 600px', minWidth: 0 }}>
+                      <h3 className="panel-title text-cyan">Top 5 Bacteria Stacked Composition</h3>
+                      <p style={{fontSize: '0.85rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Stacked area map of the top 5 taxa over time.</p>
+                      
+                      <div style={{ width: '100%', height: 350 }}>
+                        <ResponsiveContainer>
+                          <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--blue-dark-hover)" />
+                            <XAxis dataKey="week" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
+                            <YAxis stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
+                            <Tooltip contentStyle={{ backgroundColor: 'var(--blue-darker)', borderColor: 'var(--blue-dark-hover)', color: 'var(--blue-light)' }} />
+                            
+                            {activeTaxa.length === 0 && (
+                               <text x="50%" y="50%" textAnchor="middle" fill="#64748b" fontSize="14">Select bacteria from the panel to display</text>
+                            )}
+                            {activeTaxa.map((taxa, idx) => (
+                              <Area 
+                                key={taxa} type="monotone" dataKey={taxa} name={taxa} stackId="1" 
+                                stroke={CHART_COLORS[rawData.top5_names.indexOf(taxa) % CHART_COLORS.length]} 
+                                fill={CHART_COLORS[rawData.top5_names.indexOf(taxa) % CHART_COLORS.length]} 
+                                fillOpacity={0.6} 
+                              />
+                            ))}
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    <div style={{ flex: '1 1 250px', backgroundColor: 'var(--blue-dark-active)', padding: '1.5rem', borderRadius: '10px', border: '1px solid var(--blue-dark-hover)' }}>
+                      <h4 style={{marginTop: 0, color: 'var(--blue-light)'}}>Bacteria Selector (Top 5 Only)</h4>
+                      <p style={{fontSize: '0.8rem', color: 'var(--green)', marginBottom: '15px'}}>Click to add/remove from stack:</p>
+                      
+                      <div style={{ maxHeight: '300px', overflowY: 'auto', paddingRight: '5px' }}>
+                        {rawData.top5_names && rawData.top5_names.map((taxa) => {
+                          const isActive = activeTaxa.includes(taxa);
+                          const activeColor = isActive ? CHART_COLORS[rawData.top5_names.indexOf(taxa) % CHART_COLORS.length] : '#334155';
+                          return (
+                            <button 
+                              key={taxa}
+                              onClick={() => handleToggleTaxa(taxa)}
+                              style={{
+                                ...getBtnStyle(isActive, activeColor),
+                                fontSize: '0.75rem', padding: '6px 10px', marginBottom: '6px'
+                              }}
+                            >
+                              {isActive ? '✓ ' : '+ '}{taxa}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ flex: '1 1 250px', backgroundColor: 'var(--blue-dark-active)', padding: '1.5rem', borderRadius: '10px', border: '1px solid var(--blue-dark-hover)' }}>
-                  <h4 style={{marginTop: 0, color: 'var(--blue-light)'}}>Bacteria Selector (Top 5 Only)</h4>
-                  <p style={{fontSize: '0.8rem', color: 'var(--green)', marginBottom: '15px'}}>Click to add/remove from stack:</p>
-                  
-                  <div style={{ maxHeight: '300px', overflowY: 'auto', paddingRight: '5px' }}>
-                    {rawData.top5_names && rawData.top5_names.map((taxa) => {
-                      const isActive = activeTaxa.includes(taxa);
-                      const activeColor = isActive ? CHART_COLORS[rawData.top5_names.indexOf(taxa) % CHART_COLORS.length] : '#334155';
-                      return (
-                        <button 
-                          key={taxa}
-                          onClick={() => handleToggleTaxa(taxa)}
-                          style={{
-                            ...getBtnStyle(isActive, activeColor),
-                            fontSize: '0.75rem', padding: '6px 10px', marginBottom: '6px'
-                          }}
-                        >
-                          {isActive ? '✓ ' : '+ '}{taxa}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
+                {/* GRAPH 2: Fecalcal vs Time                  */}
+                <div className="micro-panel">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
+                    <div style={{ flex: '3 1 600px', minWidth: 0 }}>
+                      <h3 className="panel-title text-cyan">Inflammation & Core Metrics Overlay</h3>
+                      <p style={{fontSize: '0.85rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Tracking Fecal Calprotectin with optional overlays.</p>
+                      
+                      <div style={{ width: '100%', height: 350 }}>
+                        <ResponsiveContainer>
+                          <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--blue-dark-hover)" />
+                            <XAxis dataKey="week" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
+                            <YAxis yAxisId="left" stroke="var(--red)" tick={{fontSize: 12}} />
+                            {g2Overlay !== 'none' && (
+                              <YAxis yAxisId="right" orientation="right" stroke={g2Overlay === 'shannon' ? 'var(--blue-normal)' : 'var(--green)'} tick={{fontSize: 12}} />
+                            )}
+                            <Tooltip contentStyle={{ backgroundColor: 'var(--blue-darker)', borderColor: 'var(--blue-dark-hover)', color: 'var(--blue-light)' }} />
+                            <Legend />
+                            
+                            <Line yAxisId="left" type="monotone" dataKey="fecalcal" name="Fecal Calprotectin" stroke="var(--red)" strokeWidth={3} dot={{r: 4}} />
+                            
+                            {g2Overlay === 'shannon' && <Line yAxisId="right" type="monotone" dataKey="shannon" name="Shannon Index" stroke="var(--blue-normal)" strokeWidth={3} dot={{r: 4}} />}
+                            {g2Overlay === 'healthy_index' && <Line yAxisId="right" type="monotone" dataKey="healthy_index" name="Healthy Index" stroke="var(--green)" strokeWidth={3} dot={{r: 4}} />}
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
 
-            {/* ========================================== */}
-            {/* GRAPH 2: Fecalcal vs Time                  */}
-            {/* ========================================== */}
-            <div className="micro-panel">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
-                <div style={{ flex: '3 1 600px', minWidth: 0 }}>
-                  <h3 className="panel-title text-cyan">Inflammation & Core Metrics Overlay</h3>
-                  <p style={{fontSize: '0.85rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Tracking Fecal Calprotectin with optional overlays.</p>
-                  
-                  <div style={{ width: '100%', height: 350 }}>
-                    <ResponsiveContainer>
-                      <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--blue-dark-hover)" />
-                        <XAxis dataKey="week" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
-                        <YAxis yAxisId="left" stroke="var(--red)" tick={{fontSize: 12}} />
-                        {g2Overlay !== 'none' && (
-                          <YAxis yAxisId="right" orientation="right" stroke={g2Overlay === 'shannon' ? 'var(--blue-normal)' : 'var(--green)'} tick={{fontSize: 12}} />
-                        )}
-                        <Tooltip contentStyle={{ backgroundColor: 'var(--blue-darker)', borderColor: 'var(--blue-dark-hover)', color: 'var(--blue-light)' }} />
-                        <Legend />
-                        
-                        <Line yAxisId="left" type="monotone" dataKey="fecalcal" name="Fecal Calprotectin" stroke="var(--red)" strokeWidth={3} dot={{r: 4}} />
-                        
-                        {g2Overlay === 'shannon' && <Line yAxisId="right" type="monotone" dataKey="shannon" name="Shannon Index" stroke="var(--blue-normal)" strokeWidth={3} dot={{r: 4}} />}
-                        {g2Overlay === 'healthy_index' && <Line yAxisId="right" type="monotone" dataKey="healthy_index" name="Healthy Index" stroke="var(--green)" strokeWidth={3} dot={{r: 4}} />}
-                      </LineChart>
-                    </ResponsiveContainer>
+                    <div style={{ flex: '1 1 250px', backgroundColor: 'var(--blue-dark-active)', padding: '1.5rem', borderRadius: '10px', border: '1px solid var(--blue-dark-hover)' }}>
+                      <h4 style={{marginTop: 0, color: 'var(--blue-light)'}}>Overlay Control</h4>
+                      <p style={{fontSize: '0.8rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Choose metric to compare with inflammation:</p>
+                      
+                      <button onClick={() => setG2Overlay('shannon')} style={getBtnStyle(g2Overlay === 'shannon', 'var(--blue-normal)')}>
+                        {g2Overlay === 'shannon' ? '◉' : '○'} Shannon Index
+                      </button>
+                      <button onClick={() => setG2Overlay('healthy_index')} style={getBtnStyle(g2Overlay === 'healthy_index', 'var(--green)')}>
+                        {g2Overlay === 'healthy_index' ? '◉' : '○'} Healthy Index
+                      </button>
+                      <button onClick={() => setG2Overlay('none')} style={getBtnStyle(g2Overlay === 'none', '#64748b')}>
+                        {g2Overlay === 'none' ? '◉' : '○'} None
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ flex: '1 1 250px', backgroundColor: 'var(--blue-dark-active)', padding: '1.5rem', borderRadius: '10px', border: '1px solid var(--blue-dark-hover)' }}>
-                  <h4 style={{marginTop: 0, color: 'var(--blue-light)'}}>Overlay Control</h4>
-                  <p style={{fontSize: '0.8rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Choose metric to compare with inflammation:</p>
-                  
-                  <button onClick={() => setG2Overlay('shannon')} style={getBtnStyle(g2Overlay === 'shannon', 'var(--blue-normal)')}>
-                    {g2Overlay === 'shannon' ? '◉' : '○'} Shannon Index
-                  </button>
-                  <button onClick={() => setG2Overlay('healthy_index')} style={getBtnStyle(g2Overlay === 'healthy_index', 'var(--green)')}>
-                    {g2Overlay === 'healthy_index' ? '◉' : '○'} Healthy Index
-                  </button>
-                  <button onClick={() => setG2Overlay('none')} style={getBtnStyle(g2Overlay === 'none', '#64748b')}>
-                    {g2Overlay === 'none' ? '◉' : '○'} None
-                  </button>
+                {/* GRAPH 3: Bacterial Summations & Ratio      */}
+                <div className="micro-panel">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
+                    <div style={{ flex: '3 1 600px', minWidth: 0 }}>
+                      <h3 className="panel-title text-cyan">Bacterial Group Summations & Ratio</h3>
+                      <p style={{fontSize: '0.85rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Summation trajectories of Protective vs. Opportunistic bacteria and their ratio.</p>
+                      
+                      <div style={{ width: '100%', height: 300 }}>
+                        <ResponsiveContainer>
+                          <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--blue-dark-hover)" />
+                            <XAxis dataKey="week" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
+                            <YAxis yAxisId="left" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
+                            {g3ShowRatio && (
+                              <YAxis yAxisId="right" orientation="right" stroke="var(--green)" tick={{fontSize: 12}} />
+                            )}
+                            <Tooltip contentStyle={{ backgroundColor: 'var(--blue-darker)', borderColor: 'var(--blue-dark-hover)', color: 'var(--blue-light)' }} />
+                            <Legend />
+                            
+                            {g3ShowProSum && <Line yAxisId="left" type="monotone" dataKey="sumProtective" name="Protective Summation" stroke="var(--blue-normal)" strokeWidth={3} dot={{r: 4}} />}
+                            {g3ShowOppSum && <Line yAxisId="left" type="monotone" dataKey="sumOpportunistic" name="Opportunistic Summation" stroke="var(--red)" strokeWidth={3} dot={{r: 4}} />}
+                            {g3ShowRatio && <Line yAxisId="right" type="monotone" dataKey="ratio" name="Pro/Opp Ratio" stroke="var(--green)" strokeWidth={3} dot={{r: 4}} />}
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    <div style={{ flex: '1 1 250px', backgroundColor: 'var(--blue-dark-active)', padding: '1.5rem', borderRadius: '10px', border: '1px solid var(--blue-dark-hover)' }}>
+                      <h4 style={{marginTop: 0, color: 'var(--blue-light)'}}>Summation Controls</h4>
+                      <p style={{fontSize: '0.8rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Toggle summation lines:</p>
+                      
+                      <button onClick={() => setG3ShowProSum(!g3ShowProSum)} style={getBtnStyle(g3ShowProSum, 'var(--blue-normal)')}>
+                        {g3ShowProSum ? '👁' : '🚫'} Protective Sum
+                      </button>
+                      <button onClick={() => setG3ShowOppSum(!g3ShowOppSum)} style={getBtnStyle(g3ShowOppSum, 'var(--red)')}>
+                        {g3ShowOppSum ? '👁' : '🚫'} Opportunistic Sum
+                      </button>
+                      <button onClick={() => setG3ShowRatio(!g3ShowRatio)} style={getBtnStyle(g3ShowRatio, 'var(--green)')}>
+                        {g3ShowRatio ? '👁' : '🚫'} Pro/Opp Ratio
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
 
             {/* ========================================== */}
-            {/* GRAPH 3: Bacterial Summations              */}
+            {/* VIEW 2: CLINICAL SUMMARY & PANEL           */}
             {/* ========================================== */}
-            <div className="micro-panel">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
-                <div style={{ flex: '3 1 600px', minWidth: 0 }}>
-                  <h3 className="panel-title text-cyan">Bacterial Group Summations</h3>
-                  <p style={{fontSize: '0.85rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Summation trajectories of Protective vs. Opportunistic bacteria.</p>
-                  
-                  <div style={{ width: '100%', height: 300 }}>
-                    <ResponsiveContainer>
-                      <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--blue-dark-hover)" />
-                        <XAxis dataKey="week" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
-                        <YAxis stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
-                        <Tooltip contentStyle={{ backgroundColor: 'var(--blue-darker)', borderColor: 'var(--blue-dark-hover)', color: 'var(--blue-light)' }} />
-                        <Legend />
-                        
-                        {g3ShowProSum && <Line type="monotone" dataKey="sumProtective" name="Protective Summation" stroke="var(--blue-normal)" strokeWidth={3} dot={{r: 4}} />}
-                        {g3ShowOppSum && <Line type="monotone" dataKey="sumOpportunistic" name="Opportunistic Summation" stroke="var(--red)" strokeWidth={3} dot={{r: 4}} />}
-                      </LineChart>
-                    </ResponsiveContainer>
+            {activeCard === 'clinical' && (
+              <>
+                {/* TOP METRICS ROW */}
+                <div className="metrics-top-row">
+                  <div className="metric-card" title="Composite score representing overall gut stability and function based on reference ranges.">
+                    <span className="metric-title">HEALTHY INDEX ℹ️</span>
+                    <span className="metric-value text-green">{latestMetrics.healthy_index.toFixed(1)}</span>
+                    <span className="metric-sub">Latest Week</span>
+                  </div>
+                  <div className={`metric-card ${latestMetrics.fecalcal > 200 ? 'alert-card' : ''}`}>
+                    <span className="metric-title">FECAL CALPROTECTIN ℹ️</span>
+                    <span className={`metric-value ${latestMetrics.fecalcal > 200 ? 'text-red' : 'text-cyan'}`}>
+                      {latestMetrics.fecalcal > 200 && '⚠️ '} {latestMetrics.fecalcal.toFixed(0)}
+                    </span>
+                    <span className="metric-sub">{latestMetrics.fecalcal > 200 ? 'High Inflammation' : 'Normal Range'}</span>
+                  </div>
+                  <div className="metric-card">
+                    <span className="metric-title">PRO / OPP RATIO ℹ️</span>
+                    <span className="metric-value text-cyan">{latestMetrics.ratio}</span>
+                    <span className="metric-sub">Protective dominance multiplier</span>
+                  </div>
+                  <div className="metric-card">
+                    <span className="metric-title">SHANNON INDEX ℹ️</span>
+                    <span className="metric-value text-green">{latestMetrics.shannon.toFixed(2)}</span>
+                    <span className="metric-sub">Latest Biodiversity</span>
                   </div>
                 </div>
 
-                <div style={{ flex: '1 1 250px', backgroundColor: 'var(--blue-dark-active)', padding: '1.5rem', borderRadius: '10px', border: '1px solid var(--blue-dark-hover)' }}>
-                  <h4 style={{marginTop: 0, color: 'var(--blue-light)'}}>Summation Controls</h4>
-                  <p style={{fontSize: '0.8rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Toggle summation lines:</p>
-                  
-                  <button onClick={() => setG3ShowProSum(!g3ShowProSum)} style={getBtnStyle(g3ShowProSum, 'var(--blue-normal)')}>
-                    {g3ShowProSum ? '👁' : '🚫'} Protective Sum
-                  </button>
-                  <button onClick={() => setG3ShowOppSum(!g3ShowOppSum)} style={getBtnStyle(g3ShowOppSum, 'var(--red)')}>
-                    {g3ShowOppSum ? '👁' : '🚫'} Opportunistic Sum
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* ========================================== */}
-            {/* GRAPH 4: Health Index Profiling            */}
-            {/* ========================================== */}
-            <div className="micro-panel">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
-                <div style={{ flex: '3 1 600px', minWidth: 0 }}>
-                  <h3 className="panel-title text-cyan">Health Index Estimation</h3>
-                  <p style={{fontSize: '0.85rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Health Index plotted against bacterial group totals.</p>
-                  
-                  <div style={{ width: '100%', height: 350 }}>
-                    <ResponsiveContainer>
-                      <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--blue-dark-hover)" />
-                        <XAxis dataKey="week" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
-                        <YAxis yAxisId="left" stroke="var(--green)" tick={{fontSize: 12}} />
-                        <YAxis yAxisId="right" orientation="right" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
-                        <Tooltip contentStyle={{ backgroundColor: 'var(--blue-darker)', borderColor: 'var(--blue-dark-hover)', color: 'var(--blue-light)' }} />
-                        <Legend />
-                        
-                        <Line yAxisId="left" type="monotone" dataKey="healthy_index" name="Healthy Index" stroke="var(--green)" strokeWidth={4} dot={{r: 4}} />
-                        {g4ShowPro && <Bar yAxisId="right" dataKey="sumProtective" name="Protective Sum" fill="var(--blue-normal)" opacity={0.8} radius={[4, 4, 0, 0]} />}
-                        {g4ShowOpp && <Bar yAxisId="right" dataKey="sumOpportunistic" name="Opportunistic Sum" fill="var(--red)" opacity={0.8} radius={[4, 4, 0, 0]} />}
-                      </ComposedChart>
-                    </ResponsiveContainer>
+                <div className="insights-panel">
+                  <h3 className="panel-title text-cyan" style={{marginBottom: '15px'}}>Automated Clinical Summary</h3>
+                  <div className="insights-list">
+                    {insights.length > 0 ? insights.map((insight, idx) => (
+                      <div key={idx} className={`insight-bullet ${insight.type}`}>
+                        {insight.text}
+                      </div>
+                    )) : (
+                      <div className="insight-bullet info">No significant clinical alerts detected in this dataset.</div>
+                    )}
                   </div>
                 </div>
 
-                <div style={{ flex: '1 1 250px', backgroundColor: 'var(--blue-dark-active)', padding: '1.5rem', borderRadius: '10px', border: '1px solid var(--blue-dark-hover)' }}>
-                  <h4 style={{marginTop: 0, color: 'var(--blue-light)'}}>Estimation Overlays</h4>
-                  <p style={{fontSize: '0.8rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Toggle bacteria bars alongside Health Index:</p>
-                  
-                  <button onClick={() => setG4ShowPro(!g4ShowPro)} style={getBtnStyle(g4ShowPro, 'var(--blue-normal)')}>
-                    {g4ShowPro ? '👁' : '🚫'} Protective Bars
-                  </button>
-                  <button onClick={() => setG4ShowOpp(!g4ShowOpp)} style={getBtnStyle(g4ShowOpp, 'var(--red)')}>
-                    {g4ShowOpp ? '👁' : '🚫'} Opportunistic Bars
-                  </button>
-                </div>
-              </div>
-            </div>
+                {/* GRAPH 4: Health Index Profiling            */}
+                <div className="micro-panel">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
+                    <div style={{ flex: '3 1 600px', minWidth: 0 }}>
+                      <h3 className="panel-title text-cyan">Health Index Estimation</h3>
+                      <p style={{fontSize: '0.85rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Health Index plotted against individual bacterial values.</p>
+                      
+                      <div style={{ width: '100%', height: 350 }}>
+                        <ResponsiveContainer>
+                          <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--blue-dark-hover)" />
+                            <XAxis dataKey="week" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
+                            <YAxis yAxisId="left" stroke="var(--green)" tick={{fontSize: 12}} />
+                            <YAxis yAxisId="right" orientation="right" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
+                            <Tooltip contentStyle={{ backgroundColor: 'var(--blue-darker)', borderColor: 'var(--blue-dark-hover)', color: 'var(--blue-light)' }} />
+                            <Legend />
+                            
+                            <Line yAxisId="left" type="monotone" dataKey="healthy_index" name="Healthy Index" stroke="var(--green)" strokeWidth={4} dot={{r: 4}} />
+                            {g4SelectedTaxa.map(taxa => (
+                              <Bar key={taxa} yAxisId="right" dataKey={taxa} name={taxa} fill={getTaxaColor(taxa)} opacity={0.8} radius={[4, 4, 0, 0]} />
+                            ))}
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
 
-            {/* ========================================== */}
-            {/* GRAPH 5: Shannon Index Profiling           */}
-            {/* ========================================== */}
-            <div className="micro-panel">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
-                <div style={{ flex: '3 1 600px', minWidth: 0 }}>
-                  <h3 className="panel-title text-cyan">Shannon Diversity Profiling</h3>
-                  <p style={{fontSize: '0.85rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Diversity correlation with bacterial groups.</p>
-                  
-                  <div style={{ width: '100%', height: 350 }}>
-                    <ResponsiveContainer>
-                      <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--blue-dark-hover)" />
-                        <XAxis dataKey="week" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
-                        <YAxis yAxisId="left" stroke="#8b5cf6" tick={{fontSize: 12}} />
-                        <YAxis yAxisId="right" orientation="right" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
-                        <Tooltip contentStyle={{ backgroundColor: 'var(--blue-darker)', borderColor: 'var(--blue-dark-hover)', color: 'var(--blue-light)' }} />
-                        <Legend />
-                        
-                        <Line yAxisId="left" type="monotone" dataKey="shannon" name="Shannon Index" stroke="#8b5cf6" strokeWidth={4} dot={{r: 4}} />
-                        {g5ShowPro && <Line yAxisId="right" type="monotone" dataKey="sumProtective" name="Protective Sum" stroke="var(--blue-normal)" strokeDasharray="5 5" strokeWidth={2} />}
-                        {g5ShowOpp && <Line yAxisId="right" type="monotone" dataKey="sumOpportunistic" name="Opportunistic Sum" stroke="var(--red)" strokeDasharray="5 5" strokeWidth={2} />}
-                      </ComposedChart>
-                    </ResponsiveContainer>
+                    <div style={{ flex: '1 1 250px', backgroundColor: 'var(--blue-dark-active)', padding: '1.5rem', borderRadius: '10px', border: '1px solid var(--blue-dark-hover)', display: 'flex', flexDirection: 'column' }}>
+                      <h4 style={{marginTop: 0, color: 'var(--blue-light)', marginBottom: '5px'}}>Bacteria Overlays</h4>
+                      <p style={{fontSize: '0.8rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Select bacteria to overlay as bars:</p>
+
+                      <h5 style={{margin: '0 0 8px 0', color: 'var(--blue-normal)'}}>Protective Bacteria</h5>
+                      <div style={{ maxHeight: '110px', overflowY: 'auto', paddingRight: '5px', marginBottom: '10px' }}>
+                        {protectiveTaxaList.map((taxa) => {
+                          const isActive = g4SelectedTaxa.includes(taxa);
+                          return (
+                            <button 
+                              key={taxa} onClick={() => handleToggleG4Taxa(taxa)} 
+                              style={{ ...getBtnStyle(isActive, getTaxaColor(taxa)), fontSize: '0.75rem', padding: '6px 10px', marginBottom: '6px' }}>
+                              {isActive ? '✓ ' : '+ '} {taxa}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <h5 style={{margin: '0 0 8px 0', color: 'var(--red)'}}>Opportunistic Bacteria</h5>
+                      <div style={{ maxHeight: '110px', overflowY: 'auto', paddingRight: '5px' }}>
+                        {opportunisticTaxaList.map((taxa) => {
+                          const isActive = g4SelectedTaxa.includes(taxa);
+                          return (
+                            <button 
+                              key={taxa} onClick={() => handleToggleG4Taxa(taxa)} 
+                              style={{ ...getBtnStyle(isActive, getTaxaColor(taxa)), fontSize: '0.75rem', padding: '6px 10px', marginBottom: '6px' }}>
+                              {isActive ? '✓ ' : '+ '} {taxa}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ flex: '1 1 250px', backgroundColor: 'var(--blue-dark-active)', padding: '1.5rem', borderRadius: '10px', border: '1px solid var(--blue-dark-hover)' }}>
-                  <h4 style={{marginTop: 0, color: 'var(--blue-light)'}}>Diversity Overlays</h4>
-                  <p style={{fontSize: '0.8rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Compare diversity trends against groups:</p>
-                  
-                  <button onClick={() => setG5ShowPro(!g5ShowPro)} style={getBtnStyle(g5ShowPro, 'var(--blue-normal)')}>
-                    {g5ShowPro ? '👁' : '🚫'} Protective Trend
-                  </button>
-                  <button onClick={() => setG5ShowOpp(!g5ShowOpp)} style={getBtnStyle(g5ShowOpp, 'var(--red)')}>
-                    {g5ShowOpp ? '👁' : '🚫'} Opportunistic Trend
-                  </button>
-                </div>
-              </div>
-            </div>
+                {/* GRAPH 5: Shannon Index Profiling           */}
+                <div className="micro-panel">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
+                    <div style={{ flex: '3 1 600px', minWidth: 0 }}>
+                      <h3 className="panel-title text-cyan">Shannon Diversity Profiling</h3>
+                      <p style={{fontSize: '0.85rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Diversity correlation with individual bacterial trajectories.</p>
+                      
+                      <div style={{ width: '100%', height: 350 }}>
+                        <ResponsiveContainer>
+                          <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--blue-dark-hover)" />
+                            <XAxis dataKey="week" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
+                            <YAxis yAxisId="left" stroke="var(--blue-normal)" tick={{fontSize: 12}} />
+                            <YAxis yAxisId="right" orientation="right" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
+                            <Tooltip contentStyle={{ backgroundColor: 'var(--blue-darker)', borderColor: 'var(--blue-dark-hover)', color: 'var(--blue-light)' }} />
+                            <Legend />
+                            
+                            <Line yAxisId="left" type="monotone" dataKey="shannon" name="Shannon Index" stroke="var(--blue-normal)" strokeWidth={4} dot={{r: 4}} />
+                            {g5SelectedTaxa.map(taxa => (
+                              <Line key={taxa} yAxisId="right" type="monotone" dataKey={taxa} name={taxa} stroke={getTaxaColor(taxa)} strokeWidth={2} dot={{r: 3}} />
+                            ))}
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
 
-            {/* ========================================== */}
-            {/* GRAPH 6: PCA Scatter                       */}
-            {/* ========================================== */}
-            <div className="micro-panel">
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
-                <div style={{ flex: '3 1 600px', minWidth: 0 }}>
-                  <h3 className="panel-title text-cyan">Microbiome State Map (PCA)</h3>
-                  <p style={{fontSize: '0.85rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Structural stability clustering. Points clustered closely represent stable gut periods.</p>
-                  
-                  <div style={{ width: '100%', height: 350 }}>
-                    <ResponsiveContainer>
-                      <ScatterChart margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--blue-dark-hover)" />
-                        <XAxis type="number" dataKey="x" name="PCA X" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
-                        <YAxis type="number" dataKey="y" name="PCA Y" stroke="var(--blue-light-active)" tick={{fontSize: 12}} />
-                        <Tooltip 
-                          cursor={{strokeDasharray: '3 3'}} 
-                          contentStyle={{ backgroundColor: 'var(--blue-darker)', borderColor: 'var(--blue-dark-hover)', color: 'var(--blue-light)' }}
-                          formatter={(value, name) => {
-                            if (name === 'PCA X' || name === 'PCA Y') return [value.toFixed(2), name];
-                            return null;
-                          }}
-                          labelFormatter={() => null} 
-                        />
-                        <Scatter 
-                          name="State" 
-                          data={scatterData} 
-                          fill="var(--blue-normal)" 
-                          line={pcaPath ? {stroke: 'var(--blue-normal)', strokeWidth: 2} : false} 
-                          shape="circle" 
-                        />
-                      </ScatterChart>
-                    </ResponsiveContainer>
+                    <div style={{ flex: '1 1 250px', backgroundColor: 'var(--blue-dark-active)', padding: '1.5rem', borderRadius: '10px', border: '1px solid var(--blue-dark-hover)', display: 'flex', flexDirection: 'column' }}>
+                      <h4 style={{marginTop: 0, color: 'var(--blue-light)', marginBottom: '5px'}}>Bacteria Overlays</h4>
+                      <p style={{fontSize: '0.8rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Select bacteria to overlay as lines:</p>
+
+                      <h5 style={{margin: '0 0 8px 0', color: 'var(--blue-normal)'}}>Protective Bacteria</h5>
+                      <div style={{ maxHeight: '110px', overflowY: 'auto', paddingRight: '5px', marginBottom: '10px' }}>
+                        {protectiveTaxaList.map((taxa) => {
+                          const isActive = g5SelectedTaxa.includes(taxa);
+                          return (
+                            <button 
+                              key={taxa} onClick={() => handleToggleG5Taxa(taxa)} 
+                              style={{ ...getBtnStyle(isActive, getTaxaColor(taxa)), fontSize: '0.75rem', padding: '6px 10px', marginBottom: '6px' }}>
+                              {isActive ? '✓ ' : '+ '} {taxa}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <h5 style={{margin: '0 0 8px 0', color: 'var(--red)'}}>Opportunistic Bacteria</h5>
+                      <div style={{ maxHeight: '110px', overflowY: 'auto', paddingRight: '5px' }}>
+                        {opportunisticTaxaList.map((taxa) => {
+                          const isActive = g5SelectedTaxa.includes(taxa);
+                          return (
+                            <button 
+                              key={taxa} onClick={() => handleToggleG5Taxa(taxa)} 
+                              style={{ ...getBtnStyle(isActive, getTaxaColor(taxa)), fontSize: '0.75rem', padding: '6px 10px', marginBottom: '6px' }}>
+                              {isActive ? '✓ ' : '+ '} {taxa}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ flex: '1 1 250px', backgroundColor: 'var(--blue-dark-active)', padding: '1.5rem', borderRadius: '10px', border: '1px solid var(--blue-dark-hover)' }}>
-                  <h4 style={{marginTop: 0, color: 'var(--blue-light)'}}>State Tracing</h4>
-                  <p style={{fontSize: '0.8rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Toggle timeline path tracing:</p>
-                  
-                  <button onClick={() => setPcaPath(!pcaPath)} style={getBtnStyle(pcaPath, 'var(--blue-normal)')}>
-                    {pcaPath ? '📈 Path: ON' : '⏺ Path: OFF'}
-                  </button>
+                {/* GRAPH 6: PCA Plot */}
+                <div className="micro-panel">
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
+                    <div style={{ flex: '3 1 600px', minWidth: 0 }}>
+                      <h3 className="panel-title text-cyan">PCA Beta-Diversity Trajectory</h3>
+                      <p style={{fontSize: '0.85rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>2D PCA plot tracking the patient's gut microbiome structural shift over time.</p>
+                      
+                      <div style={{ width: '100%', height: 350 }}>
+                        <ResponsiveContainer>
+                          <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--blue-dark-hover)" />
+                            <XAxis type="number" dataKey="x" name="PCA 1" stroke="var(--blue-light-active)" />
+                            <YAxis type="number" dataKey="y" name="PCA 2" stroke="var(--blue-light-active)" />
+                            <Tooltip cursor={{strokeDasharray: '3 3'}} contentStyle={{ backgroundColor: 'var(--blue-darker)', borderColor: 'var(--blue-dark-hover)', color: 'var(--blue-light)' }} />
+                            <Scatter name="Patient Trajectory" data={scatterData} fill="var(--blue-normal)">
+                              {pcaPath && <Line type="monotone" dataKey="y" stroke="var(--blue-normal)" strokeWidth={2} />}
+                            </Scatter>
+                          </ScatterChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    <div style={{ flex: '1 1 250px', backgroundColor: 'var(--blue-dark-active)', padding: '1.5rem', borderRadius: '10px', border: '1px solid var(--blue-dark-hover)' }}>
+                      <h4 style={{marginTop: 0, color: 'var(--blue-light)'}}>PCA Controls</h4>
+                      <p style={{fontSize: '0.8rem', color: 'var(--blue-light-active)', marginBottom: '15px'}}>Toggle visual elements:</p>
+                      
+                      <button onClick={() => setPcaPath(!pcaPath)} style={getBtnStyle(pcaPath, 'var(--blue-normal)')}>
+                        {pcaPath ? '👁' : '🚫'} Show Path Trajectory
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
 
           </div>
         )}

@@ -87,13 +87,12 @@ export default function ECGViewer({ data }) {
     if (selectedForCombination.length === 0)
       return alert("Select at least one channel");
 
-    // تحديد اسم المجموعة
     let comboName =
       selectedForCombination.length === allChannels.length
         ? "Average (All)"
         : "Avg_" + selectedForCombination.join("+");
 
-    // حساب المتوسط بدلاً من الجمع
+   
     const comboSignal = Array(time.length).fill(0);
 
     selectedForCombination.forEach(ch => {
@@ -102,7 +101,6 @@ export default function ECGViewer({ data }) {
       }
     });
 
-    // تقسيم على عدد القنوات للحصول على المتوسط
     for (let i = 0; i < time.length; i++) {
       comboSignal[i] = comboSignal[i] / selectedForCombination.length;
     }
@@ -110,7 +108,7 @@ export default function ECGViewer({ data }) {
     setExtraSignals(prev => ({ ...prev, [comboName]: comboSignal }));
     setExtraChannels(prev => [...prev, comboName]);
     setVisibleChannels(prev => [...prev, comboName]);
-    setColors(prev => ({ ...prev, [comboName]: "#FF00FF" })); // لون مميز للمتوسط
+    setColors(prev => ({ ...prev, [comboName]: "#FF00FF" })); 
 
     setSelectedForCombination([]);
     setShowCombinationUI(false);
@@ -124,8 +122,8 @@ export default function ECGViewer({ data }) {
     type: "scatter",
     mode: "lines",
     name: ch,
-    line: { color: colors[ch], width: ch.startsWith("Avg") ? 3 : 2 }, // المتوسط بخط أعرض
-    opacity: ch.startsWith("Avg") ? 1 : 0.8 // المتوسط أوضح
+    line: { color: colors[ch], width: ch.startsWith("Avg") ? 3 : 2 }, 
+    opacity: ch.startsWith("Avg") ? 1 : 0.8
   }));
 
   return (

@@ -78,37 +78,32 @@ ai_model.eval()
 print("ECG AI Model Loaded")
 
 
-# AI FEATURE (Predict فقط)
+# AI FEATURE
 async def predict_ecg(parsed_data):
     channels = parsed_data["channels"]
     
-    # بناء مصفوفة الإشارات من parsed_data
-    # شكل signal_np سيكون [num_samples, num_channels]
+
     signal_np = np.array([parsed_data["signals"][ch] for ch in channels]).T
     
-    # تحويل إلى tensor
     signal_tensor = torch.tensor(
         signal_np,
         dtype=torch.float32
     )
     
-    # قص الطول إذا كان أطول من MAX_LEN
+
     MAX_LEN = 5000
     if signal_tensor.shape[0] > MAX_LEN:
         signal_tensor = signal_tensor[:MAX_LEN, :]
     
-    # تحويل من [seq_len, channels] إلى [channels, seq_len] كما في الـ notebook
-    signal_tensor = signal_tensor.transpose(0, 1)  # [channels, seq_len]
+    signal_tensor = signal_tensor.transpose(0, 1)  
     
-    print(f"Tensor shape before model: {signal_tensor.shape}")  # للتأكد
+    print(f"Tensor shape before model: {signal_tensor.shape}") 
     
     with torch.no_grad():
-        # الموديل يتوقع [channels, seq_len] مباشرة
         features = ai_model.base(signal_tensor, sampling_rate=360).last_hidden_state
         pooled = features.mean(dim=1)
         preds = ai_model.classifier(pooled)
     
-    # استخراج التنبؤات
     if preds.dim() == 2:
         preds = preds[0]
     
@@ -122,7 +117,7 @@ async def predict_ecg(parsed_data):
         4: "RBBB"
     }
 
-    # طبقة التنبؤات للتصحيح
+    
     print(f"Predictions: {dict(zip(class_map.values(), preds_list))}")
 
     return {

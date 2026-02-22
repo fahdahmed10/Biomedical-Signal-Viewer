@@ -1,11 +1,18 @@
 from pydantic import BaseModel
-from typing import List, Dict, Optional
-
+from typing import Dict, List, Optional
 
 class ECGResponse(BaseModel):
-    num_channels: int
-    channels: List[str]
-    num_samples: int
-    duration: Optional[float]
     time: List[float]
+    channels: List[str]
     signals: Dict[str, List[float]]
+    num_samples: int
+
+class PredictionScores(BaseModel):
+    Normal: float
+    AFib: float
+    PVC: float
+    LBBB: float
+    RBBB: float
+
+class PredictionResponse(BaseModel):
+    prediction: PredictionScores

@@ -30,17 +30,13 @@ export default function ECG() {
 
   const handleUpload = async () => {
     if (!file) return alert("Please select a CSV file first");
-
     const formData = new FormData();
     formData.append("file", file);
-
     try {
       setLoading(true);
-      const res = await axios.post(
-        "http://localhost:8000/ecg/upload",
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+      const res = await axios.post("http://localhost:8000/ecg/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       setResult(res.data);
       setPrediction(null);
     } catch (err) {
@@ -51,21 +47,17 @@ export default function ECG() {
     }
   };
 
-  const handlePredict = async () => {
+  // دالة predict معدلة لتستقبل model وتضيفه إلى FormData
+  const handlePredict = async (model) => {
     if (!file) return alert("Please upload a file first");
-
     const formData = new FormData();
     formData.append("file", file);
-
+    formData.append("model", model);  // ← إضافة النموذج المختار
     try {
       setPredictLoading(true);
-
-      const res = await axios.post(
-        "http://localhost:8000/ecg/predict",
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-
+      const res = await axios.post("http://localhost:8000/ecg/predict", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       setPrediction(res.data.prediction);
     } catch (err) {
       console.error("Prediction error:", err);
@@ -119,7 +111,7 @@ export default function ECG() {
             </p>
             <ul className="model-features">
               <li>Multi-channel support</li>
-              <li>High accuracy </li>
+              <li>High accuracy</li>
               <li>Real-time inference</li>
             </ul>
           </div>

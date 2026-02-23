@@ -1,42 +1,47 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Plot from "react-plotly.js";
 
 const defaultColors = [
-  "#FF4136",
-  "#0074D9",
-  "#2ECC40",
-  "#FF851B",
+  "#FF4136", 
+  "#0074D9", 
+  "#2ECC40", 
+  "#FF851B", 
   "#B10DC9",
-  "#FFDC00",
+  "#FFDC00", 
 ];
 
 export default function PolarViewer({ data }) {
+  // ========== 1. DATA INIT ==========
   const safeData = data || { time: [], signals: {}, channels: [] };
   const { time = [], signals: origSignals = {}, channels: origChannels = [] } = safeData;
 
+  // ========== 2. STATE MANAGEMENT ==========
   const [extraSignals, setExtraSignals] = useState({});
   const [extraChannels, setExtraChannels] = useState([]);
-
   const allSignals = { ...origSignals, ...extraSignals };
   const allChannels = [...origChannels, ...extraChannels];
 
+  const [visibleChannels, setVisibleChannels] = useState([]);
+  const [colors, setColors] = useState({});
+
+  // ===== Polar specific =====
+  const [period, setPeriod] = useState(1.0); // Periodic time (seconds)
+
+  // ===== Timeline controls =====
   const [index, setIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const windowSize = 400;
 
-  const [visibleChannels, setVisibleChannels] = useState([]);
-  const [colors, setColors] = useState({});
-  const [period, setPeriod] = useState(1);
-
+  // ===== Combination UI =====
   const [showCombinationUI, setShowCombinationUI] = useState(false);
   const [selectedForCombination, setSelectedForCombination] = useState([]);
 
   const requestRef = useRef(null);
 
-  /* ================= INIT ================= */
-
+  // ========== 3. INITIALIZATION ==========
   useEffect(() => {
-    if (origChannels.length) {
+    if (origChannels?.length > 0) {
       setVisibleChannels(origChannels);
       setColors(
         Object.fromEntries(
@@ -47,22 +52,20 @@ export default function PolarViewer({ data }) {
         )
       );
     }
-
     setExtraSignals({});
     setExtraChannels([]);
     setIndex(0);
     setIsPlaying(false);
   }, [origChannels]);
 
-  /* ================= ANIMATION ================= */
-
+  // ========== 4. TIMELINE ANIMATION ==========
   useEffect(() => {
     const animate = () => {
-      setIndex((prev) => {
+      setIndex(prev => {
         const next = prev + speed;
-        if (next >= time.length - 1) {
+        if (next >= time.length - windowSize) {
           setIsPlaying(false);
-          return time.length - 1;
+          return Math.max(0, time.length - windowSize);
         }
         return next;
       });
@@ -71,94 +74,181 @@ export default function PolarViewer({ data }) {
 
     if (isPlaying && time.length > 0) {
       requestRef.current = requestAnimationFrame(animate);
+    } else {
+      cancelAnimationFrame(requestRef.current);
     }
 
-    return () => {
-      if (requestRef.current) cancelAnimationFrame(requestRef.current);
-    };
-  }, [isPlaying, speed, time.length]);
+    return () => cancelAnimationFrame(requestRef.current);
+  }, [isPlaying, speed, time.length, windowSize]);
 
-  /* ================= HELPERS ================= */
-
+  // ========== 5. CHANNEL CONTROLS ==========
   const toggleChannel = (ch) => {
-    setVisibleChannels((prev) =>
-      prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch]
+    setVisibleChannels(prev =>
+      prev.includes(ch) ? prev.filter(c => c !== ch) : [...prev, ch]
     );
   };
 
+  const selectAllChannels = () => {
+    if (allChannels.length) setVisibleChannels([...allChannels]);
+  };
+
+  const clearAllChannels = () => {
+    setVisibleChannels([]);
+  };
+
+  // ========== 6. COMBINATION FUNCTIONS ==========
   const toggleSelectForCombination = (ch) => {
-    setSelectedForCombination((prev) =>
-      prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch]
+    setSelectedForCombination(prev =>
+      prev.includes(ch) ? prev.filter(c => c !== ch) : [...prev, ch]
     );
   };
 
   const createCombination = () => {
-    if (!selectedForCombination.length) return;
+    if (!selectedForCombination.length || !time?.length) {
+      alert("Select at least one channel");
+      return;
+    }
 
-    const name =
-      selectedForCombination.length === allChannels.length
-        ? "Combination"
-        : "comb_" + selectedForCombination.join("+");
+    const name = selectedForCombination.length === allChannels.length
+      ? "Average (All)"
+      : "Avg_" + selectedForCombination.join("+");
 
-    const comboSignal = Array(time.length).fill(0);
+    const avgSignal = Array(time.length).fill(0);
 
-    selectedForCombination.forEach((ch) => {
-      for (let i = 0; i < time.length; i++) {
-        comboSignal[i] += allSignals[ch]?.[i] || 0;
+    selectedForCombination.forEach(ch => {
+      const signal = allSignals[ch];
+      if (signal?.length === time.length) {
+        for (let i = 0; i < time.length; i++) {
+          avgSignal[i] += signal[i] || 0;
+        }
       }
     });
 
-    setExtraSignals((p) => ({ ...p, [name]: comboSignal }));
-    setExtraChannels((p) => [...p, name]);
-    setVisibleChannels((p) => [...p, name]);
-    setColors((p) => ({ ...p, [name]: "#FF00FF" }));
+    for (let i = 0; i < time.length; i++) {
+      avgSignal[i] = avgSignal[i] / selectedForCombination.length;
+    }
+
+    setExtraSignals(prev => ({ ...prev, [name]: avgSignal }));
+    setExtraChannels(prev => [...prev, name]);
+    setVisibleChannels(prev => [...prev, name]);
+    setColors(prev => ({ ...prev, [name]: "#FF00FF" }));
 
     setSelectedForCombination([]);
     setShowCombinationUI(false);
   };
 
-  /* ================= POLAR TRACES ================= */
+  // ========== 7. POLAR DATA PREPARATION ==========
+  const polarTraces = useMemo(() => {
+    if (!time?.length || time.length === 0) return [];
+    if (!visibleChannels?.length || visibleChannels.length === 0) return [];
 
-  const traces = [];
+    const traces = [];
+    
+    const windowStart = 0;
+    const windowEnd = index;
 
-  visibleChannels.forEach((ch) => {
-    const signal = allSignals[ch] || {};
-    const cycles = {};
+    if (windowEnd <= windowStart) return [];
 
-    for (let i = 0; i <= index; i++) {
-      const t = time[i];
-      const cycle = Math.floor(t / period);
-      const theta = ((t % period) / period) * 360;
+    visibleChannels.forEach(ch => {
+      try {
+        const signal = allSignals[ch];
+        if (!signal?.length || signal.length === 0) return;
 
-      if (!cycles[cycle]) cycles[cycle] = { r: [], theta: [] };
+        const channelColor = colors[ch] || defaultColors[visibleChannels.indexOf(ch) % defaultColors.length];
 
-      cycles[cycle].r.push(signal[i]);
-      cycles[cycle].theta.push(theta);
-    }
+        const periods = {};
+        
+        for (let i = windowStart; i <= windowEnd; i++) {
+          const t = time[i];
+          if (period > 0) {
+            const periodNum = Math.floor(t / period); 
+            
+            if (!periods[periodNum]) {
+              periods[periodNum] = { r: [], theta: [] };
+            }
 
-    Object.values(cycles).forEach((cycle) => {
-      traces.push({
-        type: "scatterpolar",
-        mode: "lines",
-        r: cycle.r,
-        theta: cycle.theta,
-        name: ch,
-        line: { color: colors[ch], width: 2 },
-        opacity: 0.4,
-      });
+            const val = signal[i];
+            if (val !== undefined && val !== null && !isNaN(val)) {
+
+              const theta = ((t % period) / period) * 360;
+              
+              periods[periodNum].r.push(val);
+              periods[periodNum].theta.push(theta);
+            }
+          }
+        }
+
+        const periodKeys = Object.keys(periods)
+          .map(Number)
+          .sort((a, b) => a - b);
+
+        periodKeys.forEach((periodNum, idx) => {
+          const periodData = periods[periodNum];
+          
+          if (periodData.r.length > 1) {
+            const points = periodData.theta.map((theta, i) => ({
+              theta,
+              r: periodData.r[i]
+            }));
+            
+            points.sort((a, b) => a.theta - b.theta);
+ 
+            const opacity = 0.5 + (idx / Math.max(1, periodKeys.length - 1)) * 0.5;
+            
+            traces.push({
+              type: "scatterpolar",
+              mode: "lines",
+              r: points.map(p => p.r),
+              theta: points.map(p => p.theta),
+              name: idx === periodKeys.length - 1 ? ch : "",
+              line: { 
+                color: channelColor, 
+                width: idx === periodKeys.length - 1 ? 3 : 2,
+              },
+              opacity: opacity,
+              showlegend: idx === periodKeys.length - 1, 
+            });
+          }
+        });
+
+      } catch (error) {
+        console.error(`Error processing channel ${ch}:`, error);
+      }
     });
-  });
 
-  /* ================= RENDER ================= */
+    return traces;
+  }, [time, visibleChannels, allSignals, colors, period, index]);
+
+  // ========== 8. UTILS ==========
+  const hasData = time?.length > 0 && time.length > 0;
+  
+  const visibleStart = time && time.length > 0 && index < time.length ? time[index] : 0;
+  const visibleEnd = time && time.length > 0 ? time[time.length - 1] : 0;
+
+  const canShowData = hasData && visibleChannels.length > 0;
 
   return (
     <div className="viewer-container">
-
-      {/* ===== Sidebar ===== */}
+      {/* ===== CONTROLS PANEL ===== */}
       <div className="controls-panel">
         <h3>Polar Controls</h3>
 
-        {allChannels.map((ch) => (
+        <div className="button-group">
+          <button 
+            onClick={selectAllChannels} 
+            className="ecg-btn-primary"
+          >
+            Select All
+          </button>
+          <button 
+            onClick={clearAllChannels} 
+            className="ecg-btn"
+          >
+            Clear All
+          </button>
+        </div>
+
+        {allChannels.map(ch => (
           <div key={ch} className="channel-row">
             <input
               type="checkbox"
@@ -169,26 +259,25 @@ export default function PolarViewer({ data }) {
             <input
               type="color"
               value={colors[ch] || "#000000"}
-              onChange={(e) =>
-                setColors({ ...colors, [ch]: e.target.value })
-              }
+              onChange={e => setColors({ ...colors, [ch]: e.target.value })}
               className="color-picker"
             />
           </div>
         ))}
 
-        <hr />
+        <hr className="section-divider" />
 
         <button
-          className="ecg-btn ecg-btn-primary"
+          className="ecg-btn-primary create-combination-btn"
           onClick={() => setShowCombinationUI(!showCombinationUI)}
         >
-          Create Combination
+          Create Average Combination
         </button>
 
         {showCombinationUI && (
           <div className="combination-box">
-            {allChannels.map((ch) => (
+            <p>Select channels to average:</p>
+            {allChannels.map(ch => (
               <div key={ch}>
                 <input
                   type="checkbox"
@@ -198,30 +287,34 @@ export default function PolarViewer({ data }) {
                 <span>{ch}</span>
               </div>
             ))}
-            <button
-              onClick={createCombination}
-              className="ecg-btn ecg-btn-success"
+            
+            <button 
+              onClick={createCombination} 
+              className="ecg-btn-success"
             >
-              Combine
+              Average ({selectedForCombination.length})
             </button>
           </div>
         )}
 
-        <hr />
+        <hr className="section-divider" />
 
-        <label>Period (sec)</label>
+        <label className="control-label">Period: {period.toFixed(2)}s</label>
         <input
-          type="number"
-          step="0.1"
+          type="range"
           min="0.1"
+          max="5"
+          step="0.1"
           value={period}
-          onChange={(e) => setPeriod(+e.target.value)}
-          className="full-input"
+          onChange={e => setPeriod(Number(e.target.value))}
+          className="range-slider"
         />
+
+        <hr className="section-divider" />
 
         <button
           onClick={() => setIsPlaying(!isPlaying)}
-          className={`ecg-btn ${isPlaying ? "ecg-btn-danger" : "ecg-btn-success"}`}
+          className={`ecg-btn ${isPlaying ? 'ecg-btn-danger' : 'ecg-btn-success'}`}
         >
           {isPlaying ? "Pause" : "Play"}
         </button>
@@ -229,63 +322,110 @@ export default function PolarViewer({ data }) {
         <button
           onClick={() => {
             setIndex(0);
-            setIsPlaying(false);
+            setIsPlaying(true);
           }}
-          className="ecg-btn ecg-btn-primary"
+          className="ecg-btn-primary"
         >
           Restart
         </button>
 
-        <label>Speed: {speed}x</label>
+        <label className="control-label">Speed: {speed}x</label>
         <input
           type="range"
-          min="1"
+          min="0.5"
           max="5"
+          step="0.5"
           value={speed}
-          onChange={(e) => setSpeed(+e.target.value)}
+          onChange={e => setSpeed(Number(e.target.value))}
+          className="range-slider"
         />
       </div>
 
-      {/* ===== Plot ===== */}
+      {/* ===== PLOT AREA ===== */}
       <div className="plot-container">
-        <label>Timeline Progress</label>
-        <input
-          type="range"
-          min="0"
-          max={Math.max(0, time.length - 1)}
-          value={index}
-          onChange={(e) => setIndex(+e.target.value)}
-          className="full-input plot-timeline"
-        />
 
+        {canShowData ? (
+          <input
+            type="range"
+            min="0"
+            max={time.length - 1}
+            value={index}
+            onChange={e => setIndex(Number(e.target.value))}
+            className="full-input plot-timeline"
+            style={{ marginBottom: '15px' }}
+          />
+        ) : (
+          <div style={{ 
+            height: '50px', 
+            marginBottom: '15px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-dim)',
+            backgroundColor: 'rgba(0,0,0,0.2)',
+            borderRadius: '8px'
+          }}>
+            Select channels to enable timeline
+          </div>
+        )}
+
+        {/* Plot */}
         <div className="plot-wrapper">
           <Plot
-            data={traces}
+            data={polarTraces.length > 0 ? polarTraces : [{
+              type: "scatterpolar",
+              r: [0],
+              theta: [0],
+              mode: "markers",
+              marker: { size: 0 },
+              showlegend: false,
+              hoverinfo: "none"
+            }]}
             layout={{
-              title: "ECG Polar Phase Overlay",
+              title: canShowData ? "Polar Viewer - All Periods" : "Select channels to start",
               polar: {
-                radialaxis: { 
+                domain: { x: [0, 1], y: [0, 1] },
+                radialaxis: {
                   title: "Amplitude",
-                  gridcolor: "#333"
+                  gridcolor: "#444",
+                  gridwidth: 1,
                 },
-                angularaxis: { 
-                  rotation: 90, 
+                angularaxis: {
+                  gridcolor: "#444",
+                  gridwidth: 1,
+                  rotation: 90,
                   direction: "clockwise",
-                  gridcolor: "#333"
+                  tickmode: "array",
+                  tickvals: [0, 90, 180, 270, 360],
+                  ticktext: ["0°", "90°", "180°", "270°", "360°"],
                 },
               },
               paper_bgcolor: "transparent",
               plot_bgcolor: "transparent",
               font: { color: "white" },
-              legend: { orientation: "h", y: -0.25 },
-              margin: { t: 50, b: 50, l: 50, r: 50 }
+              showlegend: polarTraces.length > 0,
+              legend: {
+                orientation: "h",
+                y: -0.15,
+                x: 0.5,
+                xanchor: "center",
+                font: { color: "white", size: 10 },
+                bgcolor: "rgba(0,0,0,0.5)",
+              },
+              margin: { t: 40, b: 60, l: 40, r: 40 },
+              dragmode: "pan",
+              hovermode: "closest",
             }}
-            config={{ responsive: true, scrollZoom: true }}
-            style={{ width: "100%", height: "100%" }}
+            config={{
+              responsive: true,
+              scrollZoom: true,
+              displayModeBar: true,
+              doubleClick: 'reset',
+            }}
+            style={{ width: "100%", height: "450px" }}
           />
         </div>
       </div>
-
     </div>
   );
 }

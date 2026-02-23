@@ -85,7 +85,7 @@ hr {
   width: 100%;
 }
 
-/* ================= INTRO SECTION ================= */
+/* ================= INTRO SECTION (قديم - نحتفظ به للتوافق) ================= */
 .ecg-intro {
   min-height: 90vh;
   width: 100%;
@@ -177,7 +177,7 @@ hr {
   margin: 0 auto;
 }
 
-/* ================= NAV CARDS ================= */
+/* ================= NAV CARDS (قديم) ================= */
 .nav-cards-container {
   display: flex;
   flex-direction: column;
@@ -262,7 +262,7 @@ hr {
   color: var(--accent-primary);
 }
 
-/* ================= TASK SECTIONS ================= */
+/* ================= TASK SECTIONS (قاعدة) ================= */
 .task-section {
   min-height: 100vh;
   padding: 80px 5%;
@@ -271,7 +271,6 @@ hr {
   align-items: center;
   justify-content: center;
   position: relative;
-  background: transparent;
 }
 
 .task-section h2 {
@@ -294,10 +293,6 @@ hr {
   height: 4px;
   background: var(--accent-gradient);
   border-radius: 2px;
-}
-
-.alt-bg {
-  background: linear-gradient(135deg, var(--bg-alt), var(--bg-primary));
 }
 
 /* ================= UPLOAD SECTION ================= */
@@ -509,7 +504,6 @@ hr {
   border-bottom: 1px solid var(--border-light);
 }
 
-/* مجموعة الأزرار العلوية - معدل */
 .controls-panel .button-group {
   display: flex;
   gap: 8px;
@@ -590,7 +584,6 @@ hr {
   border-radius: 4px;
 }
 
-/* Control buttons */
 .controls-panel button {
   width: 100%;
   padding: 10px 14px;
@@ -665,7 +658,6 @@ hr {
   cursor: not-allowed;
 }
 
-/* ===== القسم ده مهم جداً للزر Create Average Combination ===== */
 .controls-panel > button.ecg-btn-primary:not(.button-group button) {
   width: 100%;
   margin: 8px 0;
@@ -798,7 +790,6 @@ hr {
   cursor: not-allowed;
 }
 
-/* تحسين المسافات بين الأقسام */
 .controls-panel hr {
   margin: 12px 0;
   border: none;
@@ -864,18 +855,16 @@ hr {
   100% { transform: rotate(360deg); }
 }
 
-/* ================= RESPONSIVE DESIGN ================= */
+/* ================= RESPONSIVE DESIGN (قاعدة) ================= */
 @media (max-width: 1400px) {
   .viewer-container {
     flex-direction: column;
     min-height: auto;
   }
-  
   .controls-panel {
     width: 100%;
     max-height: 500px;
   }
-  
   .plot-container {
     min-height: 600px;
   }
@@ -887,20 +876,16 @@ hr {
     padding: 0;
     height: auto;
   }
-  
   .intro-left, .intro-right {
     width: 100%;
     padding: 60px 30px;
   }
-  
   .nav-cards-container {
     max-width: 100%;
   }
-  
   .nav-card:hover {
     transform: translateY(-5px) translateX(0);
   }
-  
   .nav-card:hover::before {
     width: 100%;
     height: 4px;
@@ -913,37 +898,29 @@ hr {
   .task-section {
     padding: 40px 4%;
   }
-  
   .upload-workspace {
     flex-direction: column;
     padding: 25px;
   }
-  
   .upload-workspace input[type="file"] {
     width: 100%;
   }
-  
   .upload-workspace button {
     width: 100%;
   }
-  
   .viewer-container {
     padding: 20px;
   }
-  
   .controls-panel {
     padding: 20px;
   }
-  
   .plot-container {
     padding: 20px;
     min-height: 450px;
   }
-  
   .channel-row {
     padding: 8px 12px;
   }
-  
   .color-picker {
     width: 28px;
     height: 28px;
@@ -954,47 +931,333 @@ hr {
   .intro-text h1 {
     font-size: 2rem;
   }
-  
   .heartbeat-scene {
     font-size: 5rem;
   }
-  
   .nav-card {
     padding: 15px 20px;
   }
-  
   .icon-box {
     font-size: 1.8rem;
     min-width: 40px;
   }
-  
   .card-info h3 {
     font-size: 1.1rem;
   }
-  
   .prediction-box {
     padding: 20px;
   }
-  
   .controls-panel h3 {
     font-size: 1.2rem;
   }
 }
 
-/* Print styles */
 @media print {
   .ecg-page {
     background: white;
     color: black;
   }
-  
   .controls-panel,
   .upload-workspace,
   .nav-cards-container {
     display: none;
   }
-  
   .plot-container {
     break-inside: avoid;
+  }
+}
+
+/* ================= أنماط جديدة للـ HERO و MODELS ================= */
+.hero-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10%;
+  background: linear-gradient(135deg, var(--bg-primary), var(--bg-alt));
+  overflow: hidden;
+  position: relative;
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 20% 50%, rgba(0,198,255,0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.hero-content {
+  flex: 1;
+  max-width: 600px;
+  z-index: 2;
+}
+
+.hero-title {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 20px;
+}
+
+.hero-highlight {
+  color: var(--accent-primary);
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-size: 1.2rem;
+  color: var(--text-dim);
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.hero-cta {
+  padding: 14px 36px;
+  border: none;
+  border-radius: 50px;
+  background: var(--accent-gradient);
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 8px 20px rgba(0,198,255,0.3);
+}
+
+.hero-cta:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 30px rgba(0,198,255,0.4);
+}
+
+.hero-image {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2;
+}
+
+.hero-icon {
+  font-size: 15rem;
+  color: var(--accent-primary);
+  opacity: 0.8;
+  filter: drop-shadow(0 0 40px rgba(0,198,255,0.5));
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+/* ================= MODELS SECTIONS (AI + Viewers cards) ================= */
+.models-section,
+.viewers-cards-section {
+  min-height: 100vh;
+  padding: 80px 10%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--bg-alt), var(--bg-primary));
+}
+
+.section-title {
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  margin-bottom: 50px;
+  color: var(--accent-primary);
+  position: relative;
+  display: inline-block;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 4px;
+  background: var(--accent-gradient);
+  border-radius: 2px;
+}
+
+.models-grid {
+  display: flex;
+  gap: 40px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 50px;
+}
+
+.model-card {
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-light);
+  border-radius: 24px;
+  padding: 40px 30px;
+  width: 350px;
+  transition: all var(--transition-normal);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.model-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--accent-gradient);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+
+.model-card:hover {
+  transform: translateY(-10px);
+  border-color: var(--accent-primary);
+  box-shadow: 0 20px 40px rgba(0,198,255,0.2);
+}
+
+.model-card:hover::before {
+  opacity: 1;
+}
+
+.model-card.active {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 30px rgba(0,198,255,0.3);
+}
+
+.model-card.active::before {
+  opacity: 1;
+}
+
+.model-icon {
+  font-size: 3rem;
+  color: var(--accent-primary);
+  margin-bottom: 20px;
+}
+
+.model-title {
+  font-size: 1.8rem;
+  margin-bottom: 15px;
+  color: white;
+}
+
+.model-desc {
+  color: var(--text-dim);
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+.model-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.model-features li {
+  padding: 8px 0;
+  color: var(--text-muted);
+  border-bottom: 1px dashed var(--border-light);
+}
+
+.model-features li::before {
+  content: "✓";
+  color: var(--accent-primary);
+  margin-right: 10px;
+}
+
+/* ===== أزرار اختيار النموذج في قسم الرفع ===== */
+.model-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+
+.model-select-btn {
+  padding: 12px 24px;
+  border: 2px solid var(--border-light);
+  border-radius: var(--border-radius-md);
+  background: transparent;
+  color: var(--text-light);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-width: 160px;
+}
+
+.model-select-btn:hover {
+  border-color: var(--accent-primary);
+  background: rgba(0,198,255,0.1);
+}
+
+.model-select-btn.active {
+  background: var(--accent-gradient);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 15px rgba(0,198,255,0.3);
+}
+
+/* ===== تناوب خلفيات الأقسام ===== */
+.task-section:nth-of-type(odd) {
+  background: linear-gradient(135deg, var(--bg-primary), var(--bg-alt));
+}
+.task-section:nth-of-type(even) {
+  background: linear-gradient(135deg, var(--bg-alt), var(--bg-primary));
+}
+
+/* ================= تحديثات للأقسام الموجودة لتتناسق مع التصميم الجديد ================= */
+/* نضمن أن جميع الأقسام لها نفس نمط العنوان */
+.task-section h2,
+.models-section h2,
+.viewers-cards-section h2 {
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  margin-bottom: 50px;
+  color: var(--accent-primary);
+  position: relative;
+  display: inline-block;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.task-section h2::after,
+.models-section h2::after,
+.viewers-cards-section h2::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 4px;
+  background: var(--accent-gradient);
+  border-radius: 2px;
+}
+
+/* دعم للشاشات الصغيرة */
+@media (max-width: 1000px) {
+  .hero-section {
+    flex-direction: column;
+    text-align: center;
+    padding: 60px 5%;
+  }
+  .hero-image {
+    margin-top: 40px;
+  }
+  .hero-icon {
+    font-size: 10rem;
   }
 }

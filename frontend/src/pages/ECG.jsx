@@ -7,7 +7,8 @@ import {
   FaProjectDiagram,
   FaTh,
   FaCompass,
-  FaArrowDown,
+  FaBrain,
+  FaChartLine,
 } from "react-icons/fa";
 
 import ECGViewer from "../components/ECG/ECGViewer";
@@ -19,19 +20,14 @@ export default function ECG() {
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  // AI MODEL STATES
   const [prediction, setPrediction] = useState(null);
   const [predictLoading, setPredictLoading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("pretrained");
 
   const scrollToSection = (id) => {
-    document.getElementById(id)?.scrollIntoView({ 
-      behavior: "smooth",
-      block: "start"
-    });
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // ================= UPLOAD =================
   const handleUpload = async () => {
     if (!file) return alert("Please select a CSV file first");
 
@@ -55,7 +51,6 @@ export default function ECG() {
     }
   };
 
-  // ================= AI PREDICT =================
   const handlePredict = async () => {
     if (!file) return alert("Please upload a file first");
 
@@ -82,95 +77,164 @@ export default function ECG() {
 
   return (
     <div className="ecg-page">
-
-      {/* ================= INTRO ================= */}
-      <section className="ecg-intro">
-        <div className="intro-left">
-          <div className="heartbeat-scene">
-            <FaHeartbeat />
-          </div>
-
-          <div className="intro-text">
-            <h1>ECG Analysis Platform</h1>
-            <p>
-              Advanced ECG signal visualization and analysis with 
-              multiple viewing modes and AI-powered diagnosis
-            </p>
-          </div>
+      {/* ========== HERO SECTION ========== */}
+      <section id="home" className="hero-section">
+        <div className="hero-overlay"></div>
+        <div className="hero-content">
+          <h1 className="hero-title">
+            ECG <span className="hero-highlight">Analysis</span> Platform
+          </h1>
+          <p className="hero-subtitle">
+            Real-time multi-channel ECG visualization and automated cardiac
+            diagnostic tools and historical record access.
+          </p>
+          <button className="hero-cta" onClick={() => scrollToSection("ai-models")}>
+            Explore Models
+          </button>
         </div>
+        <div className="hero-image">
+          <FaHeartbeat className="hero-icon" />
+        </div>
+      </section>
 
-        <div className="intro-right">
-          <div className="nav-cards-container">
-            <div className="nav-card" onClick={() => scrollToSection("section-ecg")}>
-              <div className="icon-box"><FaHeartbeat /></div>
-              <div className="card-info">
-                <h3>ECG Viewer</h3>
-                <p>Multi-channel signal visualization</p>
-              </div>
-              <FaArrowDown className="go-icon" />
+      {/* ========== AI MODELS CARDS ========== */}
+      <section id="ai-models" className="models-section">
+        <h2 className="section-title">AI Models</h2>
+        <div className="models-grid">
+          {/* Pretrained Model Card */}
+          <div
+            className={`model-card ${selectedModel === "pretrained" ? "active" : ""}`}
+            onClick={() => {
+              setSelectedModel("pretrained");
+              scrollToSection("upload-section");
+            }}
+          >
+            <div className="model-icon">
+              <FaBrain />
             </div>
+            <h3 className="model-title">Pretrained Model</h3>
+            <p className="model-desc">
+              Deep learning (HuBERT-ECG) trained on massive ECG datasets for
+              arrhythmia classification.
+            </p>
+            <ul className="model-features">
+              <li>Multi-channel support</li>
+              <li>High accuracy </li>
+              <li>Real-time inference</li>
+            </ul>
+          </div>
 
-            <div className="nav-card" onClick={() => scrollToSection("section-xor")}>
-              <div className="icon-box"><FaProjectDiagram /></div>
-              <div className="card-info">
-                <h3>XOR Viewer</h3>
-                <p>Signal difference analysis</p>
-              </div>
-              <FaArrowDown className="go-icon" />
+          {/* Classical Model Card */}
+          <div
+            className={`model-card ${selectedModel === "classical" ? "active" : ""}`}
+            onClick={() => {
+              setSelectedModel("classical");
+              scrollToSection("upload-section");
+            }}
+          >
+            <div className="model-icon">
+              <FaChartLine />
             </div>
-
-            <div className="nav-card" onClick={() => scrollToSection("section-rec")}>
-              <div className="icon-box"><FaTh /></div>
-              <div className="card-info">
-                <h3>Recurrence Plot</h3>
-                <p>Channel correlation visualization</p>
-              </div>
-              <FaArrowDown className="go-icon" />
-            </div>
-
-            <div className="nav-card" onClick={() => scrollToSection("section-polar")}>
-              <div className="icon-box"><FaCompass /></div>
-              <div className="card-info">
-                <h3>Polar Viewer</h3>
-                <p>Phase-space signal representation</p>
-              </div>
-              <FaArrowDown className="go-icon" />
-            </div>
+            <h3 className="model-title">Classical Model</h3>
+            <p className="model-desc">
+              Random Forest classifier using statistical features and
+              autocorrelation for explainable results.
+            </p>
+            <ul className="model-features">
+              <li>Interpretable</li>
+              <li>Fast training</li>
+              <li>Baseline comparison</li>
+            </ul>
           </div>
         </div>
       </section>
 
-      {/* ================= UPLOAD + AI ================= */}
-      <section className="task-section alt-bg">
-        <h2>Upload ECG Signal</h2>
+      {/* ========== SIGNAL VIEWERS CARDS ========== */}
+      <section className="viewers-cards-section">
+        <h2 className="section-title">Signal Viewers</h2>
+        <div className="models-grid">
+          {/* ECG Viewer Card */}
+          <div className="model-card" onClick={() => scrollToSection("section-ecg")}>
+            <div className="model-icon">
+              <FaHeartbeat />
+            </div>
+            <h3 className="model-title">ECG Viewer</h3>
+            <p className="model-desc">Multi-channel signal visualization</p>
+          </div>
 
+          {/* XOR Viewer Card */}
+          <div className="model-card" onClick={() => scrollToSection("section-xor")}>
+            <div className="model-icon">
+              <FaProjectDiagram />
+            </div>
+            <h3 className="model-title">XOR Viewer</h3>
+            <p className="model-desc">Signal difference analysis</p>
+          </div>
+
+          {/* Recurrence Plot Card */}
+          <div className="model-card" onClick={() => scrollToSection("section-rec")}>
+            <div className="model-icon">
+              <FaTh />
+            </div>
+            <h3 className="model-title">Recurrence Plot</h3>
+            <p className="model-desc">Channel correlation visualization</p>
+          </div>
+
+          {/* Polar Viewer Card */}
+          <div className="model-card" onClick={() => scrollToSection("section-polar")}>
+            <div className="model-icon">
+              <FaCompass />
+            </div>
+            <h3 className="model-title">Polar Viewer</h3>
+            <p className="model-desc">Phase-space signal representation</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== UPLOAD SECTION ========== */}
+      <section id="upload-section" className="task-section alt-bg">
+        <h2>Upload ECG Signal</h2>
         <div className="upload-workspace">
           <input
             type="file"
-            accept=".csv"
+            accept=".csv,.zip"
             onChange={(e) => setFile(e.target.files[0])}
           />
-
           <button onClick={handleUpload} disabled={loading}>
             {loading ? "Processing..." : "Upload & Analyze"}
           </button>
+        </div>
 
+        {/* Model Selection Buttons */}
+        <div className="model-buttons">
+          <button
+            className={`model-select-btn ${selectedModel === "pretrained" ? "active" : ""}`}
+            onClick={() => setSelectedModel("pretrained")}
+          >
+            Pretrained Model
+          </button>
+          <button
+            className={`model-select-btn ${selectedModel === "classical" ? "active" : ""}`}
+            onClick={() => setSelectedModel("classical")}
+          >
+            Classical Model
+          </button>
           {file && (
             <button
               className="predict-btn"
-              onClick={handlePredict}
+              onClick={() => handlePredict(selectedModel)}
               disabled={predictLoading}
             >
-              {predictLoading ? "Analyzing..." : "AI Diagnosis"}
+              {predictLoading ? "Analyzing..." : "Run Diagnosis"}
             </button>
           )}
         </div>
 
-        {/* ===== AI RESULT ===== */}
         {prediction && (
           <div className="prediction-box">
-            <h3>AI Diagnosis Results</h3>
-
+            <h3>
+              Diagnosis Results ({selectedModel === "pretrained" ? "Pretrained AI" : "Classical ML"})
+            </h3>
             {Object.entries(prediction).map(([label, value]) => (
               <div key={label} className="prediction-item">
                 <span>{label}</span>
@@ -181,7 +245,7 @@ export default function ECG() {
         )}
       </section>
 
-      {/* ================= VIEWERS ================= */}
+      {/* ========== VIEWERS SECTIONS ========== */}
       <section id="section-ecg" className="task-section">
         <h2>ECG Viewer</h2>
         <div className="workspace">
@@ -209,7 +273,6 @@ export default function ECG() {
           <PolarViewer data={result} />
         </div>
       </section>
-
     </div>
   );
 }

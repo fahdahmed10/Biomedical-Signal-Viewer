@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import axios from "axios"; //deal with servce
 import "./ECG.css";
 
 import {
@@ -47,12 +47,11 @@ export default function ECG() {
     }
   };
 
-  // دالة predict معدلة لتستقبل model وتضيفه إلى FormData
   const handlePredict = async (model) => {
     if (!file) return alert("Please upload a file first");
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("model", model);  // ← إضافة النموذج المختار
+    formData.append("model", model);  
     try {
       setPredictLoading(true);
       const res = await axios.post("http://localhost:8000/ecg/predict", formData, {

@@ -25,18 +25,19 @@ export default function XORViewer({ data }) {
   const [visibleChannels, setVisibleChannels] = useState([]);
   const [colors, setColors] = useState({});
   
-  const [chunkSize, setChunkSize] = useState(1.0); // مدة الشريحة (بالثواني)
+  const [chunkSize, setChunkSize] = useState(1.0); 
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   
   const [index, setIndex] = useState(0);
-  const windowSize = 400; // عدد النقاط الظاهرة في الشاشة
+  const windowSize = 400;
   
   const [showCombinationUI, setShowCombinationUI] = useState(false);
   const [selectedForCombination, setSelectedForCombination] = useState([]);
 
   const requestRef = useRef(null);
 
+  
   // ========== INIT ==========
   useEffect(() => {
     if (origChannels?.length > 0) {
@@ -135,36 +136,31 @@ export default function XORViewer({ data }) {
     setShowCombinationUI(false);
   };
 
-  // ========== XOR CALCULATION (المقاطع المتراكبة) ==========
   const xorTraces = useMemo(() => {
     if (!time?.length || !visibleChannels?.length) return [];
 
     const traces = [];
     const startTime = time[0];
-    const currentTime = time[index]; // الزمن الحالي (بداية النافذة)
-    const endTime = time[Math.min(index + windowSize, time.length - 1)]; // نهاية النافذة
+    const currentTime = time[index];
+    const endTime = time[Math.min(index + windowSize, time.length - 1)]; 
 
-    // لكل قناة مرئية
     visibleChannels.forEach(ch => {
       const signal = allSignals[ch];
       if (!signal?.length) return;
 
       const channelColor = colors[ch] || defaultColors[visibleChannels.indexOf(ch) % defaultColors.length];
 
-      // حساب رقم المقطع الذي نبدأ منه والمقطع الذي ننتهي عنده ضمن النافذة
       const startChunk = Math.floor((currentTime - startTime) / chunkSize);
       const endChunk = Math.floor((endTime - startTime) / chunkSize);
 
-      // تجميع المقاطع السابقة والحالية التي تنتمي إلى هذه النافذة
       for (let chunkIdx = startChunk; chunkIdx <= endChunk; chunkIdx++) {
-        if (chunkIdx < 1) continue; // أول مقطع ليس له سابق
+        if (chunkIdx < 1) continue; 
 
         const currentStart = startTime + chunkIdx * chunkSize;
         const currentEnd = currentStart + chunkSize;
         const prevStart = startTime + (chunkIdx - 1) * chunkSize;
         const prevEnd = prevStart + chunkSize;
 
-        // استخراج مؤشرات النقاط في هذا المقطع والمقطع السابق
         const currentIndices = [];
         const prevIndices = [];
 
@@ -175,9 +171,8 @@ export default function XORViewer({ data }) {
         }
 
         const minPoints = Math.min(currentIndices.length, prevIndices.length);
-        if (minPoints < 2) continue; // نحتاج نقطتين على الأقل لرسم خط
+        if (minPoints < 2) continue; 
 
-        // التحقق من التطابق بين المقطعين (جميع الفروق < threshold)
         let identical = true;
         const threshold = 0.01;
         for (let i = 0; i < minPoints; i++) {
@@ -189,35 +184,29 @@ export default function XORViewer({ data }) {
           }
         }
 
-        // إذا كان المقطعان متطابقين، نتخطى هذا المقطع (محوه)
         if (identical) continue;
 
-        // رسم المقطع الحالي (يمكن استخدام الإشارة الأصلية أو الفرق)
-        // نختار رسم الإشارة الأصلية للمقطع الحالي
+
         const xVals = currentIndices.map(i => time[i]);
         const yVals = currentIndices.map(i => signal[i] || 0);
 
-        // إضافة trace لهذا المقطع
         traces.push({
-          type: "scattergl", // أسرع للكميات الكبيرة
+          type: "scattergl", 
           mode: "lines",
           x: xVals,
           y: yVals,
           name: ch,
           line: { color: channelColor, width: 1.5 },
-          opacity: 0.5, // شفافية عالية للتراكب
-          showlegend: false, // كل قناة تظهر مرة واحدة فقط في الـ legend (سنضيف trace واحد باسم القناة)
+          opacity: 0.5, 
+          showlegend: false, 
         });
       }
 
-      // نضيف trace واحد لكل قناة في الـ legend (مرئي) لتجنب تكرار الأسماء
-      // يمكننا إضافة نقطة وهمية أو استخدام أول مقطع
       if (traces.length > 0) {
-        // نبحث عن أول trace لهذه القناة ونجعل showlegend = true
         const firstTraceIndex = traces.findIndex(t => t.name === ch);
         if (firstTraceIndex !== -1) {
           traces[firstTraceIndex].showlegend = true;
-          traces[firstTraceIndex].name = ch; // تأكد من الاسم
+          traces[firstTraceIndex].name = ch; 
         }
       }
     });
@@ -290,7 +279,6 @@ export default function XORViewer({ data }) {
 
         <hr className="section-divider" />
 
-        {/* ===== شريط تمرير مدة الشريحة ===== */}
         <label className="control-label">Chunk Size: {chunkSize.toFixed(1)} s</label>
         <input
           type="range"
@@ -302,7 +290,6 @@ export default function XORViewer({ data }) {
           className="range-slider"
         />
 
-        {/* أزرار التحكم بالتشغيل */}
         <button
           onClick={() => setIsPlaying(!isPlaying)}
           disabled={!hasData}

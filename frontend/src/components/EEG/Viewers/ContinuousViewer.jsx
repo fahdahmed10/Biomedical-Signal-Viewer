@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Plot from 'react-plotly.js';
 import '../../../styles/eeg/Viewers/ContinuousViewer.css';
 
-const ContinuousViewer = ({ fileId, metadata }) => {
+const ContinuousViewer = ({ fileId, metadata, mlPredictions, dlPredictions }) => {
   // --- STATE MANAGEMENT ---
   const [dataBuffer, setDataBuffer] = useState({ time: [] });
   const [nextPageToFetch, setNextPageToFetch] = useState(1);
@@ -202,6 +202,13 @@ const ContinuousViewer = ({ fileId, metadata }) => {
   const allChannelsVisible = Object.values(channelSettings).every(ch => ch.visible);
   const maxTimeLoaded = dataBuffer.time[dataBuffer.time.length - 1] || windowSize;
 
+  // Helper to safely format predictions
+  const formatPrediction = (pred) => {
+    if (!pred) return "N/A";
+    if (typeof pred === 'object') return JSON.stringify(pred);
+    return pred;
+  };
+
   // --- PLOT RENDERERS ---
   const renderLargeViewer = (isStacked) => {
     // 1. Get list of visible channels
@@ -350,6 +357,18 @@ const ContinuousViewer = ({ fileId, metadata }) => {
           <button className={`ctrl-btn ${viewMode === 'multiple' ? 'active-mode' : ''}`} onClick={() => setViewMode('multiple')}>
             Multi
           </button>
+        </div>
+
+        {/* PREDICTIONS NAVBAR (NEW CLASSES APPLIED) */}
+        <div className="prediction-navbar">
+          <div className="prediction-item">
+            <span className="prediction-label ml">ML Prediction:</span>
+            <span className="prediction-value">{formatPrediction(mlPredictions)}</span>
+          </div>
+          <div className="prediction-item">
+            <span className="prediction-label dl">DL Prediction:</span>
+            <span className="prediction-value">{formatPrediction(dlPredictions)}</span>
+          </div>
         </div>
 
         {/* GRAPH VIEWPORT */}

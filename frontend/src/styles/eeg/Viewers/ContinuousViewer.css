@@ -240,4 +240,42 @@ input[type="color"] {
 input[type="range"] {
   width: 100px;
   cursor: pointer;
+}/* --- PREDICTIONS NAVBAR --- */
+.prediction-navbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  padding: 12px 20px;
+  background-color: #0b2239; /* Dark theme background */
+  border-bottom: 1px solid #1a4162;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  font-size: 15px;
+  z-index: 10;
+}
+
+.prediction-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.prediction-label.ml {
+  color: #81c784; /* Soft Green */
+  font-weight: bold;
+}
+
+.prediction-label.dl {
+  color: #64b5f6; /* Soft Blue */
+  font-weight: bold;
+}
+
+.prediction-value {
+  color: #ffffff;
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }

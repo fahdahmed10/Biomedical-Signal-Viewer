@@ -7,6 +7,7 @@ import pandas as pd
 import uuid
 import json
 import os
+import shutil
 
 EEG_Router = APIRouter()
 extractor = FeatureExtractor()
@@ -16,38 +17,40 @@ TEMP_DIR = "temp_signal_data"
 os.makedirs(TEMP_DIR, exist_ok=True)
 
 
-# 1 - endpoint for data extraction and ai predictions 
+
 @EEG_Router.post('/EEG', response_model=AnalysisResponse)
 async def get_info(file: UploadFile = File(...)):
 
     if not (file.filename.endswith(".csv") or file.filename.endswith(".parquet")):
-        raise HTTPException(
-            status_code=status.HTTP_406_NOT_ACCEPTABLE,
-            detail="Only CSV or Parquet files allowed"
-        )
+        raise HTTPException(status_code=406, detail="Only CSV or Parquet files allowed")
 
+    # 1. Create a safe temporary file path
+    temp_file_path = f"temp_{file.filename}"
+    
     try:
-        contents = await file.read()
+        # 2. Save the massive file to disk INSTEAD of RAM
+        with open(temp_file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        # 3. Let Pandas read it straight from the disk
         if file.filename.endswith(".csv"):
-            # contents = await file.read()
-            df = pd.read_csv(BytesIO(contents))
+            df = pd.read_csv(temp_file_path)
         else:
-            # contents = await file.read()
-            df = pd.read_parquet(BytesIO(contents))
+            df = pd.read_parquet(temp_file_path)
 
     except Exception as e:
-        print("ERROR:", e)   # 🔥 helps debugging
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Could not parse file"
-        )
+        print("ERROR PARSING:", e)
+        raise HTTPException(status_code=400, detail="Could not parse file")
+    
+    finally:
+        # 4. ALWAYS delete the temp file so your hard drive doesn't fill up
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
 
     if df.empty:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Uploaded file is empty"
-        )
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
         
+    # Proceed with your logic...
     metadata, time_array, signals_dict = extractor.extract(df)
     predictions = predictor.predict(df)
     
@@ -55,9 +58,6 @@ async def get_info(file: UploadFile = File(...)):
     filepath = os.path.join(TEMP_DIR, f"{file_id}.json")
     
     
-    # features = extractor.extract(df)
-    # predictions = predictor.predict(df)
-
     with open(filepath, "w") as f:
         json.dump({"time": time_array, "signals": signals_dict}, f)
         

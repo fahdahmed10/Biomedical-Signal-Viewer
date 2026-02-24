@@ -17,3 +17,7 @@ xgboost==1.5.2
 statsmodels
 pyarrow
 fastparquet
+torch 
+torchvision 
+opencv-python-headless 
+numba

@@ -3,7 +3,7 @@ import EEGIntro from '../components/EEG/Intro/EEGIntro';
 import EEGNavbar from '../components/EEG/Dashboard/EEGNavbar'; 
 import ContinuousViewer from '../components/EEG/Viewers/ContinuousViewer';
 import ReoccurrenceViewer from '../components/EEG/Viewers/ReoccurrenceViewer';
-import PolarViewer from '../components/EEG/Viewers/PolarViewer'; // NEW IMPORT
+import PolarViewer from '../components/EEG/Viewers/PolarViewer'; 
 import '../styles/eeg/eeg-intro.css'; 
 import XORViewer from '../components/EEG/Viewers/XORViewer';
 
@@ -16,10 +16,15 @@ function EEG() {
 
   const handleFileUploadSuccess = (responseData) => {
     setFileId(responseData.file_id);
+    
+    // Correctly extracting the dictionaries from the JSON response
     setEegMetadata({
       features: responseData.features,
-      predictions: responseData.predictions // Contains: is_normal, abnormality_type
+      predictions: responseData.predictions, // Keeps original just in case
+      mlPredictions: responseData.predictions?.ML_Predictions || {}, // Extracted ML Predictions dictionary
+      dlPredictions: responseData.predictions?.DL_Predictions || {}  // Extracted DL Predictions dictionary
     });
+    
     setIsLaunched(true);
     setShowNotification(true); // Trigger the AI result notification
   };
@@ -29,6 +34,20 @@ function EEG() {
     setShowNotification(false);
   };
 
+  // Helper function to find the prediction with the highest probability
+  const getTopPrediction = (predictionsDict) => {
+    if (!predictionsDict || Object.keys(predictionsDict).length === 0) return null;
+    
+    return Object.entries(predictionsDict).reduce((max, [label, value]) => {
+      return value > max.value ? { label, value } : max;
+    }, { label: 'Unknown', value: -1 });
+  };
+
+  // Get the top result from DL_Predictions to show in the banner
+  const topPrediction = eegMetadata ? getTopPrediction(eegMetadata.dlPredictions) : null;
+  // Treating "Other" as the baseline/normal class based on typical EEG datasets
+  const isNormal = topPrediction?.label === 'Other';
+
   return (
     <div className="eeg-page-container">
       {!isLaunched ? (
@@ -37,10 +56,11 @@ function EEG() {
         <div className="eeg-dashboard-layout">
           
           {/* Mandatory AI Notification Banner */}
-          {showNotification && eegMetadata?.predictions && (
-            <div className={`ai-notification-banner ${eegMetadata.predictions.is_normal ? 'normal' : 'abnormal'}`}>
+          {showNotification && topPrediction && (
+            <div className={`ai-notification-banner ${isNormal ? 'normal' : 'abnormal'}`}>
               <div className="notification-content">
-                <strong>AI Analysis Result:</strong> {eegMetadata.predictions.is_normal ? '✅ Normal Signal' : `⚠️ Abnormal: ${eegMetadata.predictions.abnormality_type}`}
+                <strong>AI Analysis Result:</strong> {isNormal ? '✅ Normal / Background' : `⚠️ Abnormal Detected: ${topPrediction.label}`} 
+                {' '}(Confidence: {(topPrediction.value * 100).toFixed(1)}%)
                 <button className="close-notify" onClick={() => setShowNotification(false)}>×</button>
               </div>
             </div>
@@ -59,6 +79,8 @@ function EEG() {
                 <ContinuousViewer 
                   fileId={fileId} 
                   metadata={eegMetadata} 
+                  mlPredictions={eegMetadata?.mlPredictions}
+                  dlPredictions={eegMetadata?.dlPredictions}
                 />
               </div>
             )}
@@ -68,6 +90,8 @@ function EEG() {
                 <ReoccurrenceViewer 
                   fileId={fileId} 
                   metadata={eegMetadata} 
+                  mlPredictions={eegMetadata?.mlPredictions}
+                  dlPredictions={eegMetadata?.dlPredictions}
                 />
               </div>
             )}
@@ -78,17 +102,21 @@ function EEG() {
                 <PolarViewer 
                   fileId={fileId} 
                   metadata={eegMetadata} 
+                  mlPredictions={eegMetadata?.mlPredictions}
+                  dlPredictions={eegMetadata?.dlPredictions}
                 />
               </div>
             )}
 
-            {/* Placeholder for future XOR viewer */}
+            {/* INTEGRATED XOR VIEWER */}
             {activeView === 'xor' && (
               <div className="eeg-viewer-content" style={{ width: '100%', height: '100%' }}>
                 <XORViewer 
                   fileId={fileId} 
                   metadata={eegMetadata} 
-                  />
+                  mlPredictions={eegMetadata?.mlPredictions}
+                  dlPredictions={eegMetadata?.dlPredictions}
+                />
               </div>
             )}
 
